@@ -12,14 +12,14 @@ ExplorarDirectorios::buscarMP3(const std::filesystem::path& directorio) const {
         return archivosMP3;
     }
     std::filesystem::recursive_directory_iterator iterador(directorio, std::filesystem::directory_options::skip_permission_denied, error);
-    std::filesystem::recursive_directory_iterator fin;
+    const std::filesystem::recursive_directory_iterator fin;
+
+    // Si no se pudo iniciar el recorrido, se devuelve la lista vacía
+    if (error) {
+        return archivosMP3;
+    }
 
     while (iterador != fin) {
-        if (error) {
-            error.clear();
-            iterador.increment(error);
-            continue;
-        }
         std::error_code errorArchivo;
 
         if (iterador->is_regular_file(errorArchivo) && !errorArchivo) {
@@ -33,6 +33,9 @@ ExplorarDirectorios::buscarMP3(const std::filesystem::path& directorio) const {
             }
         }
         iterador.increment(error);
+        if (error) {
+            error.clear();
+        }
     }
     return archivosMP3;
 }
