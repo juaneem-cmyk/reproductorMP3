@@ -1,1 +1,1 @@
-executable('minero', 'main.cpp', 'LectorMetadatos.cpp', dependencies: taglib, install: false)
+executable('minero', 'main.cpp', 'LectorMetadatos.cpp','ExplorarDirectorios.cpp', dependencies: taglib, install: false)
