@@ -1,0 +1,34 @@
+#include "InicializarBD.h"
+#include "ConexionSQLite.h"
+#include <filesystem>
+#include <fstream>
+#include <iterator>
+#include <string>
+
+bool InicializadorBaseDatos::inicializar(
+    const std::string& rutaBaseDatos, const std::string& rutaEsquema,
+    bool& baseDatosCreada, std::string& mensajeError) const {
+    namespace fs = std::filesystem;
+    baseDatosCreada = false;
+    std::error_code errorFS;
+    const bool existe = fs::exists(rutaBaseDatos, errorFS);
+
+    // Comprobar si hubo un error al verificar la existencia del archivo
+    if (errorFS) {
+        mensajeError = "No se pudo comprobar la base de datos: " + errorFS.message();
+        return false;
+    }
+
+    // Si el archivo de la base de datos ya existe, no volver a ejecutar el esquema
+    if (existe) {
+        if (!fs::is_regular_file(rutaBaseDatos, errorFS) || errorFS) {
+            mensajeError = "La ruta de la base de datos no es un archivo regular.";
+            return false;
+        }
+        mensajeError.clear();
+        return true;
+    }
+    baseDatosCreada = true;
+    mensajeError.clear();
+    return true;
+}
