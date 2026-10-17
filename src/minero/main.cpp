@@ -1,5 +1,6 @@
 #include "LectorMetadatos.h"
 #include "ExplorarDirectorios.h"
+#include "InicializarBD.h"
 #include <filesystem>
 #include <iostream>
 #include <cctype>
@@ -11,8 +12,29 @@
     Si se indica un directorio, se buscan todos los archivos con extensión .mp3
     y se leen sus metadatos, mostrando los resultados en pantalla. */
 int main(int numeroArgumentos, char* listaArgumentos[]) {
+    if (numeroArgumentos == 2 && std::string(listaArgumentos[1]) == "--inicializar-bd") {
+    InicializadorBaseDatos inicializador;
+    bool baseDatosCreada = false;
+    std::string mensajeError;
+    const std::string rutaBaseDatos = "biblioteca_musical.db";
+    const std::string rutaEsquema = "src/baseDatos/rolas.sql";
+
+    // Intentar inicializar la base de datos SQLite, creando el archivo y ejecutando el esquema si es necesario
+    if (!inicializador.inicializar(rutaBaseDatos, rutaEsquema, baseDatosCreada, mensajeError)) {
+        std::cerr << "Error al inicializar SQLite: " << mensajeError << '\n';
+        return 1;
+    }
+
+    // Informar al usuario si la base de datos fue creada o si ya existía
+    if (baseDatosCreada) {
+        std::cout << "Base de datos inicializada correctamente.\n";
+    } else {
+        std::cout << "La base de datos ya existía.\n";
+    }
+    return 0;
+    }
     if (numeroArgumentos != 2) {
-        std::cerr << "Uso: minero <archivo.mp3 | directorio>\n";
+        std::cerr << "Uso:\n" << "  minero <archivo.mp3 | directorio>\n" << "  minero --inicializar-bd\n";        
         return 1;
     }
     std::filesystem::path ruta = listaArgumentos[1];
