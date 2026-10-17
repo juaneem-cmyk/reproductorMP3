@@ -31,6 +31,29 @@ bool ConexionSQLite::abrir(const std::string& rutaArchivo, std::string& mensajeE
     return true;
 }
 
+bool ConexionSQLite::ejecutarSQL(const std::string& sentencia, std::string& mensajeError) {
+    // Verificar si la conexión está abierta
+    if (conexion == nullptr) {
+        mensajeError = "No hay una conexión abierta con SQLite.";
+        return false;
+    }
+    char* errorSQLite = nullptr;
+    const int codigo = sqlite3_exec(conexion.get(), sentencia.c_str(), nullptr, nullptr, &errorSQLite);
+
+    // Verificar si hubo un error al ejecutar la sentencia SQL
+    if (codigo != SQLITE_OK) {
+        if (errorSQLite != nullptr) {
+            mensajeError = errorSQLite;
+            sqlite3_free(errorSQLite);
+        } else {
+            mensajeError = sqlite3_errmsg(conexion.get());
+        }
+        return false;
+    }
+    mensajeError.clear();
+    return true;
+}
+
 bool ConexionSQLite::estaAbierta() const noexcept {
     return conexion != nullptr;
 }

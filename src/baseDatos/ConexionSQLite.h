@@ -19,8 +19,11 @@ public:
     ConexionSQLite& operator=(const ConexionSQLite&) = delete;
 
     bool abrir(
-        const std::string& rutaArchivo,
-        std::string& mensajeError
+        const std::string& rutaArchivo, std::string& mensajeError
+    );
+    
+    bool ejecutarSQL(
+    const std::string& sentencia, std::string& mensajeError
     );
     bool estaAbierta() const noexcept;
     sqlite3* obtenerManejador() const noexcept;
