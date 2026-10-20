@@ -38,4 +38,26 @@ bool RepositorioMusical::existeCancionPorRuta(const std::string& ruta, bool& exi
     codigo = sqlite3_bind_text(sentencia.get(), 1, ruta.c_str(), -1, SQLITE_TRANSIENT
     );
 
+    if (codigo != SQLITE_OK) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+        return false;
+    }
+    // Ejecutar la consulta y determinar si se encontró una canción
+    codigo = sqlite3_step(sentencia.get());
+
+    // Comprobar el resultado de la ejecución de la consulta
+    if (codigo == SQLITE_ROW) {
+        existe = true;
+        mensajeError.clear();
+        return true;
+    }
+
+    // Si no se encontró ninguna fila, significa que la canción no existe
+    if (codigo == SQLITE_DONE) {
+        existe = false;
+        mensajeError.clear();
+        return true;
+    }
+    mensajeError = sqlite3_errmsg(baseDatos);
+    return false;
 }
