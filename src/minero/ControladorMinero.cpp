@@ -2,6 +2,7 @@
 #include "ExplorarDirectorios.h"
 #include "InicializarBD.h"
 #include "LectorMetadatos.h"
+#include "Rutas.h"
 #include <cctype>
 #include <filesystem>
 #include <iostream>
@@ -22,20 +23,26 @@ int ControladorMinero::ejecutar(int numeroArgumentos, char* listaArgumentos[]) c
     return procesarRuta(listaArgumentos[1]);
 }
 
+// Inicializa la base de datos de la aplicación
 int ControladorMinero::inicializarBaseDatos() const {
-    const std::string rutaBaseDatos = "biblioteca_musical.db";
-    const std::string rutaEsquema = "src/baseDatos/rolas.sql";
+    std::string mensajeError;
+    // Preparar el directorio de datos de la aplicación
+    if (!Rutas::prepararDirectorioDatos(mensajeError)) {
+        std::cerr << "Error: " << mensajeError << '\n';
+        return 1;
+    }
+    const std::string rutaBaseDatos = Rutas::rutaBaseDatos().string();
+    const std::string rutaEsquema = Rutas::rutaEsquemaSQL().string();
     InicializadorBaseDatos inicializador;
     bool baseDatosCreada = false;
-    std::string mensajeError;
 
-    // Intentar inicializar la base de datos
+    // Intentar inicializar la base de datos utilizando el esquema SQL
     if (!inicializador.inicializar(rutaBaseDatos, rutaEsquema, baseDatosCreada, mensajeError)) {
         std::cerr << "Error al inicializar SQLite: " << mensajeError << '\n';
         return 1;
     }
 
-    // Informar al usuario sobre el resultado de la inicialización
+    // Informar al usuario sobre el resultado de la inicialización de la base de datos
     if (baseDatosCreada) {
         std::cout << "Base de datos inicializada correctamente.\n";
     } else {
