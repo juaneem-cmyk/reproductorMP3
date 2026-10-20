@@ -23,3 +23,28 @@ fs::path Rutas::rutaBaseDatos() {
     return {};
 }
 
+// Obtener la ruta del archivo de esquema SQL
+fs::path Rutas::rutaEsquemaSQL() {
+    return fs::path(REPRODUCTORMP3_SOURCE_DIR) / "src"/ "baseDatos"/ "rolas.sql";
+}
+
+// Preparar el directorio de datos de la aplicación
+bool Rutas::prepararDirectorioDatos(std::string& mensajeError) {
+    const fs::path archivoBaseDatos = rutaBaseDatos();
+
+    // Verificar si se pudo determinar la ruta del archivo de base de datos
+    if (archivoBaseDatos.empty()) {
+        mensajeError = "No se pudo determinar el directorio de datos de la aplicación.";
+        return false;
+    }
+    std::error_code error;
+    fs::create_directories(archivoBaseDatos.parent_path(), error);
+
+    // Verificar si hubo un error al crear el directorio de datos
+    if (error) {
+        mensajeError = "No se pudo crear el directorio de datos: " + error.message();
+        return false;
+    }
+    mensajeError.clear();
+    return true;
+}
