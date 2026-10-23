@@ -317,3 +317,36 @@ bool RepositorioMusical::registrarCancion(const std::string& rutaArchivo, const 
         mensajeError.clear();
         return true;
     }
+    // Obtener o crear el intérprete de la canción
+    int idInterprete = 0;
+
+    if (!obtenerOCrearInterprete(metadatos.artista, idInterprete, mensajeError)) {
+        cancelarTransaccion();
+        return false;
+    }
+    // Obtener o crear el álbum correspondiente, si existe una coincidencia
+    int idAlbum = 0;
+    bool tieneAlbum = false;
+
+    if (!obtenerOCrearAlbum(rutaNormalizada.string(), metadatos.album, metadatos.year, idAlbum, tieneAlbum, mensajeError)) {
+        cancelarTransaccion();
+        return false;
+    }
+    // Preparar la inserción de la canción
+    const char* insercion = "INSERT INTO rolas " "(id_performer, id_album, path, title, track, year, genre) "
+    "VALUES (?, ?, ?, ?, ?, ?, ?);";
+    sqlite3* baseDatos = conexion.obtenerManejador();
+    sqlite3_stmt* sentenciaTemporal = nullptr;
+    int codigo = sqlite3_prepare_v2(baseDatos, insercion, -1, &sentenciaTemporal, nullptr);
+
+    // Comprobar si la preparación de la sentencia fue exitosa
+    if (codigo != SQLITE_OK) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+
+        if (sentenciaTemporal != nullptr) {
+            sqlite3_finalize(sentenciaTemporal);
+        }
+        cancelarTransaccion();
+        return false;
+    }
+}
