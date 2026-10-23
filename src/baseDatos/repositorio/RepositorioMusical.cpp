@@ -210,7 +210,7 @@ bool RepositorioMusical::obtenerOCrearAlbum(const std::string& rutaArchivo, cons
     std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> sentencia(temporal, &sqlite3_finalize);
     codigo = sqlite3_bind_text(sentencia.get(), 1, rutaAlbum.c_str(), -1, SQLITE_TRANSIENT);
 
-    // Comprobar si la vinculación del parámetro fue exitosa
+    // Comprobar si la asociación de parámetros fue exitosa
     if (codigo != SQLITE_OK) {
         mensajeError = sqlite3_errmsg(baseDatos);
         return false;
@@ -229,4 +229,47 @@ bool RepositorioMusical::obtenerOCrearAlbum(const std::string& rutaArchivo, cons
         mensajeError = sqlite3_errmsg(baseDatos);
         return false;
     }
+    // El álbum no existe, preparar su inserción
+    sentencia.reset();
+    const char* insercion = "INSERT INTO albums (path, name, year) VALUES (?, ?, ?);";
+    temporal = nullptr;
+    codigo = sqlite3_prepare_v2(baseDatos, insercion, -1, &temporal, nullptr);
+
+    if (codigo != SQLITE_OK) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+
+        if (temporal != nullptr) {
+            sqlite3_finalize(temporal);
+        }
+        return false;
+    }
+    sentencia.reset(temporal);
+    codigo = sqlite3_bind_text(sentencia.get(), 1, rutaAlbum.c_str(), -1, SQLITE_TRANSIENT);
+
+    // Si la preparación de la sentencia fue exitosa, asociar los parámetros del álbum
+    if (codigo == SQLITE_OK) {
+        codigo = sqlite3_bind_text(sentencia.get(), 2, nombreAlbum.c_str(), -1, SQLITE_TRANSIENT);
+    }
+
+    // Si la preparación de la sentencia fue exitosa, asociar el año del álbum
+    if (codigo == SQLITE_OK) {
+        codigo = sqlite3_bind_int64(sentencia.get(), 3, static_cast<sqlite3_int64>(year));
+    }
+
+    // Comprobar si la asociación de parámetros fue exitosa
+    if (codigo != SQLITE_OK) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+        return false;
+    }
+    codigo = sqlite3_step(sentencia.get());
+
+    // Comprobar si la inserción fue exitosa
+    if (codigo != SQLITE_DONE) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+        return false;
+    }
+    idAlbum = static_cast<int>(sqlite3_last_insert_rowid(baseDatos));
+    tieneAlbum = true;
+    mensajeError.clear();
+    return true;
 }
