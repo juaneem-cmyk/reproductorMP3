@@ -111,6 +111,7 @@ int ControladorMinero::procesarRuta(const std::string& argumento) const {
         std::cout << "Artista: " << metadatos.artista << '\n';
         std::cout << "Álbum: " << metadatos.album << '\n';
         std::cout << "Año: " << metadatos.year << '\n';
+        std::cout << "Género: " << metadatos.genero << '\n';
         std::cout << "Número de pista: " << metadatos.numeroPista << '\n';
         std::cout << "Duración: " << metadatos.duracionSegundos << " segundos\n\n";
         ++archivosProcesados;
