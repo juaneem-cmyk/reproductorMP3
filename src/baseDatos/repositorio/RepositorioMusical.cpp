@@ -87,6 +87,56 @@ bool RepositorioMusical::obtenerOCrearInterprete(const std::string& nombre, int&
         }
         return false;
     }
+    std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> sentencia(temporal, &sqlite3_finalize);
+    codigo = sqlite3_bind_text(sentencia.get(), 1, nombreInterprete.c_str(), -1, SQLITE_TRANSIENT);
+
+    if (codigo != SQLITE_OK) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+        return false;
+    }
+    codigo = sqlite3_step(sentencia.get());
+
+    if (codigo == SQLITE_ROW) {
+        idInterprete = sqlite3_column_int(sentencia.get(), 0);
+        mensajeError.clear();
+        return true;
+    }
+
+    if (codigo != SQLITE_DONE) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+        return false;
+    }
+    // El intérprete no existe: registrarlo como Unknown
+    sentencia.reset();
+    const char* insercion = "INSERT INTO performers (id_type, name) VALUES (?, ?);";
+    temporal = nullptr;
+    codigo = sqlite3_prepare_v2(baseDatos, insercion, -1, &temporal, nullptr);
+
+    if (codigo != SQLITE_OK) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+
+        if (temporal != nullptr) {
+            sqlite3_finalize(temporal);
+        }
+        return false;
+    }
+    sentencia.reset(temporal);
+    codigo = sqlite3_bind_int(sentencia.get(), 1, 2);
+
+    if (codigo == SQLITE_OK) {
+        codigo = sqlite3_bind_text(sentencia.get(), 2, nombreInterprete.c_str(), -1, SQLITE_TRANSIENT);
+    }
+
+    if (codigo != SQLITE_OK) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+        return false;
+    }
+    codigo = sqlite3_step(sentencia.get());
+
+    if (codigo != SQLITE_DONE) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+        return false;
+    }
     idInterprete = static_cast<int>(sqlite3_last_insert_rowid(baseDatos));
     mensajeError.clear();
     return true;
