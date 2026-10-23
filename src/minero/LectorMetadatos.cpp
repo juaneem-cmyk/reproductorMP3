@@ -42,6 +42,7 @@ bool LectorMetadatosMP3::leerArchivo(const std::string& rutaArchivo, MetadatosMu
     metadatos.album = etiqueta->album().to8Bit(true);
     metadatos.year = etiqueta->year();
     metadatos.numeroPista = etiqueta->track();
+    metadatos.genero = etiqueta->genre().to8Bit(true);
     TagLib::AudioProperties* propiedades = archivo.audioProperties();
 
     // Se obtiene la duración del archivo en segundos si está disponible

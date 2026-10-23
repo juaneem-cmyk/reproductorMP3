@@ -7,6 +7,7 @@ struct MetadatosMusicales {
     std::string titulo;
     std::string artista;
     std::string album;
+    std::string genero;
 
     unsigned int year = 0;
     unsigned int numeroPista = 0;
