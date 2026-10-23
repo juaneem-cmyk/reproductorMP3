@@ -1,5 +1,5 @@
 #include "RepositorioMusical.h"
-
+#include "LectorMetadatos.h"
 #include <memory>
 #include <sqlite3.h>
 #include <filesystem>
@@ -273,3 +273,47 @@ bool RepositorioMusical::obtenerOCrearAlbum(const std::string& rutaArchivo, cons
     mensajeError.clear();
     return true;
 }
+
+bool RepositorioMusical::registrarCancion(const std::string& rutaArchivo, const MetadatosMusicales& metadatos, bool& insertada, std::string& mensajeError) const {
+    insertada = false;
+
+    // Comprobar que exista una conexión abierta
+    if (!conexion.estaAbierta()) {
+        mensajeError = "No hay una conexión abierta con SQLite.";
+        return false;
+    }
+    // Obtener una ruta absoluta y normalizada
+    std::error_code errorRuta;
+    const std::filesystem::path rutaNormalizada = std::filesystem::absolute(rutaArchivo, errorRuta).lexically_normal();
+
+    if (errorRuta) {
+        mensajeError = "No se pudo obtener la ruta del archivo: " + errorRuta.message();
+        return false;
+    }
+
+    // Iniciar una transacción para mantener consistentes los registros
+    if (!conexion.ejecutarSQL("BEGIN IMMEDIATE;", mensajeError)) {
+        return false;
+    }
+    // Si ocurre un error, intentar deshacer los cambios de esta operación
+    auto cancelarTransaccion = [&]() {
+        std::string errorRollback;
+        conexion.ejecutarSQL("ROLLBACK;", errorRollback);
+    };
+    // Comprobar si la canción ya se encuentra registrada
+    bool existe = false;
+
+    if (!existeCancionPorRuta(rutaNormalizada.string(), existe, mensajeError)) {
+        cancelarTransaccion();
+        return false;
+    }
+
+    // Si ya existe, conservar sus datos y no insertar otra fila
+    if (existe) {
+        if (!conexion.ejecutarSQL("COMMIT;", mensajeError)) {
+            cancelarTransaccion();
+            return false;
+        }
+        mensajeError.clear();
+        return true;
+    }
