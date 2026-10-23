@@ -2,6 +2,8 @@
 
 #include <memory>
 #include <sqlite3.h>
+#include <filesystem>
+#include <system_error>
 
 // Recibe una conexión SQLite que ya existe y la utiliza para realizar operaciones en la base de datos musical
 RepositorioMusical::RepositorioMusical(ConexionSQLite& conexion) : conexion(conexion) {
@@ -140,4 +142,53 @@ bool RepositorioMusical::obtenerOCrearInterprete(const std::string& nombre, int&
     idInterprete = static_cast<int>(sqlite3_last_insert_rowid(baseDatos));
     mensajeError.clear();
     return true;
+}
+
+bool RepositorioMusical::obtenerOCrearAlbum(const std::string& rutaArchivo, const std::string& nombreAlbum, unsigned int year, int& idAlbum, bool& tieneAlbum, std::string& mensajeError) const {
+    idAlbum = 0;
+    tieneAlbum = false;
+
+    // Comprobar que exista una conexión abierta
+    if (!conexion.estaAbierta()) {
+        mensajeError = "No hay una conexión abierta con SQLite.";
+        return false;
+    }
+
+    // Si el MP3 no tiene nombre de álbum, se deja sin asignar
+    if (nombreAlbum.empty()) {
+        mensajeError.clear();
+        return true;
+    }
+
+    // Obtener la ruta normalizada del archivo
+    std::error_code errorRuta;
+    const std::filesystem::path rutaNormalizada = std::filesystem::absolute(rutaArchivo, errorRuta).lexically_normal();
+
+    if (errorRuta) {
+        mensajeError = "No se pudo obtener la ruta del archivo: " + errorRuta.message();
+        return false;
+    }
+    // Buscar un directorio cuyo nombre coincida con el metadato del álbum
+    std::filesystem::path directorio = rutaNormalizada.parent_path();
+    std::filesystem::path rutaDirectorioAlbum;
+
+    // Recorrer los directorios ascendentes hasta encontrar una coincidencia o llegar a la raíz
+    while (!directorio.empty()) {
+        if (directorio.filename().string() == nombreAlbum) {
+            rutaDirectorioAlbum = directorio;
+            break;
+        }
+        const std::filesystem::path padre = directorio.parent_path();
+
+        if (padre == directorio) {
+            break;
+        }
+        directorio = padre;
+    }
+
+    // Si no existe coincidencia, la canción permanecerá sin álbum
+    if (rutaDirectorioAlbum.empty()) {
+        mensajeError.clear();
+        return true;
+    }
 }

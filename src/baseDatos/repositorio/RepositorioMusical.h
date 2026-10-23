@@ -4,6 +4,8 @@
 #include "ConexionSQLite.h"
 #include <string>
 
+struct MetadatosMusicales;
+
 class RepositorioMusical {
 public:
     explicit RepositorioMusical(ConexionSQLite& conexion);
@@ -11,6 +13,10 @@ public:
     bool existeCancionPorRuta(const std::string& ruta, bool& existe, std::string& mensajeError) const;
 
     bool obtenerOCrearInterprete(const std::string& nombre, int& idInterprete, std::string& mensajeError) const;
+
+    bool obtenerOCrearAlbum(const std::string& rutaArchivo, const std::string& nombreAlbum, unsigned int year, int& idAlbum, bool& tieneAlbum, std::string& mensajeError) const;
+
+    bool registrarCancion(const std::string& rutaArchivo, const MetadatosMusicales& metadatos, bool& insertada, std::string& mensajeError) const;
 
 private:
     ConexionSQLite& conexion;
