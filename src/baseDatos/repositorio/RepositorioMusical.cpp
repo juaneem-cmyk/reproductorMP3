@@ -61,3 +61,33 @@ bool RepositorioMusical::existeCancionPorRuta(const std::string& ruta, bool& exi
     mensajeError = sqlite3_errmsg(baseDatos);
     return false;
 }
+
+bool RepositorioMusical::obtenerOCrearInterprete(const std::string& nombre, int& idInterprete, std::string& mensajeError) const {
+    idInterprete = 0;
+
+    if (!conexion.estaAbierta()) {
+        mensajeError = "No hay una conexión abierta con SQLite.";
+        return false;
+    }
+    sqlite3* baseDatos = conexion.obtenerManejador();
+
+    // Si el MP3 no tiene artista, usamos un intérprete desconocido
+    const std::string nombreInterprete = nombre.empty() ? "Unknown" : nombre;
+    // Buscar el intérprete antes de insertar uno nuevo
+    const char* consulta = "SELECT id_performer " "FROM performers " "WHERE name = ? " "ORDER BY id_performer " "LIMIT 1;";
+    sqlite3_stmt* temporal = nullptr;
+
+    int codigo = sqlite3_prepare_v2(baseDatos, consulta, -1, &temporal, nullptr);
+
+    if (codigo != SQLITE_OK) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+
+        if (temporal != nullptr) {
+            sqlite3_finalize(temporal);
+        }
+        return false;
+    }
+    idInterprete = static_cast<int>(sqlite3_last_insert_rowid(baseDatos));
+    mensajeError.clear();
+    return true;
+}

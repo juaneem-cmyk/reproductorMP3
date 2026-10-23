@@ -10,6 +10,8 @@ public:
 
     bool existeCancionPorRuta(const std::string& ruta, bool& existe, std::string& mensajeError) const;
 
+    bool obtenerOCrearInterprete(const std::string& nombre, int& idInterprete, std::string& mensajeError) const;
+
 private:
     ConexionSQLite& conexion;
 };
