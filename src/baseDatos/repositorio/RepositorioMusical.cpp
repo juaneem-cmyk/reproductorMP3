@@ -191,4 +191,42 @@ bool RepositorioMusical::obtenerOCrearAlbum(const std::string& rutaArchivo, cons
         mensajeError.clear();
         return true;
     }
+    sqlite3* baseDatos = conexion.obtenerManejador();
+    const std::string rutaAlbum = rutaDirectorioAlbum.lexically_normal().string();
+    // Buscar el álbum por su ruta
+    const char* consulta = "SELECT id_album FROM albums WHERE path = ? LIMIT 1;";
+    sqlite3_stmt* temporal = nullptr;
+    int codigo = sqlite3_prepare_v2(baseDatos, consulta, -1, &temporal, nullptr);
+
+    // Comprobar si la preparación de la sentencia fue exitosa
+    if (codigo != SQLITE_OK) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+
+        if (temporal != nullptr) {
+            sqlite3_finalize(temporal);
+        }
+        return false;
+    }
+    std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> sentencia(temporal, &sqlite3_finalize);
+    codigo = sqlite3_bind_text(sentencia.get(), 1, rutaAlbum.c_str(), -1, SQLITE_TRANSIENT);
+
+    // Comprobar si la vinculación del parámetro fue exitosa
+    if (codigo != SQLITE_OK) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+        return false;
+    }
+    codigo = sqlite3_step(sentencia.get());
+
+    // Si el álbum ya existe, reutilizar su identificador
+    if (codigo == SQLITE_ROW) {
+        idAlbum = sqlite3_column_int(sentencia.get(), 0);
+        tieneAlbum = true;
+        mensajeError.clear();
+        return true;
+    }
+
+    if (codigo != SQLITE_DONE) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+        return false;
+    }
 }
