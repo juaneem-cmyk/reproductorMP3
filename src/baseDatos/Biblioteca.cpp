@@ -14,4 +14,3 @@ bool Biblioteca::preparar(bool& baseDatosCreada, std::string& mensajeError) cons
     InicializadorBaseDatos inicializador;
     return inicializador.inicializar(Rutas::rutaBaseDatos().string(), Rutas::rutaEsquemaSQL().string(), baseDatosCreada, mensajeError);
 }
-
