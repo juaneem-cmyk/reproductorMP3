@@ -349,4 +349,66 @@ bool RepositorioMusical::registrarCancion(const std::string& rutaArchivo, const 
         cancelarTransaccion();
         return false;
     }
+    // Liberar la sentencia preparada automáticamente
+    std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> sentencia(sentenciaTemporal, &sqlite3_finalize);
+    // Asociar el identificador del intérprete
+    codigo = sqlite3_bind_int(sentencia.get(), 1, idInterprete);
+
+    // Asociar el álbum o dejarlo en NULL si la canción está suelta
+    if (codigo == SQLITE_OK) {
+        if (tieneAlbum) {
+            codigo = sqlite3_bind_int(sentencia.get(), 2, idAlbum);
+        } else {
+            codigo = sqlite3_bind_null(sentencia.get(), 2);
+        }
+    }
+
+    // Asociar la ruta del archivo
+    if (codigo == SQLITE_OK) {
+        codigo = sqlite3_bind_text(sentencia.get(), 3, rutaNormalizada.string().c_str(), -1, SQLITE_TRANSIENT);
+    }
+
+    // Asociar el título
+    if (codigo == SQLITE_OK) {
+        codigo = sqlite3_bind_text(sentencia.get(), 4, metadatos.titulo.c_str(), -1, SQLITE_TRANSIENT);
+    }
+
+    // Asociar el número de pista
+    if (codigo == SQLITE_OK) {
+        codigo = sqlite3_bind_int64(sentencia.get(), 5, static_cast<sqlite3_int64>(metadatos.numeroPista));
+    }
+
+    // Asociar el año
+    if (codigo == SQLITE_OK) {
+        codigo = sqlite3_bind_int64(sentencia.get(), 6, static_cast<sqlite3_int64>(metadatos.year));
+    }
+
+    // Asociar el género
+    if (codigo == SQLITE_OK) {
+        codigo = sqlite3_bind_text(sentencia.get(), 7, metadatos.genero.c_str(), -1, SQLITE_TRANSIENT);
+    }
+
+    // Comprobar si todos los parámetros se asociaron correctamente
+    if (codigo != SQLITE_OK) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+        cancelarTransaccion();
+        return false;
+    }
+    // Ejecutar la inserción de la canción
+    codigo = sqlite3_step(sentencia.get());
+
+    if (codigo != SQLITE_DONE) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+        cancelarTransaccion();
+        return false;
+    }
+
+    // Confirmar los cambios de la operación
+    if (!conexion.ejecutarSQL("COMMIT;", mensajeError)) {
+        cancelarTransaccion();
+        return false;
+    }
+    insertada = true;
+    mensajeError.clear();
+    return true;
 }
