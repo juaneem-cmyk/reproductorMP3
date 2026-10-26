@@ -5,7 +5,7 @@
 
 class Biblioteca {
 public:
-    bool preparar(bool& baseDatosCreada, std::string& mensajeError) const;
+    bool biblioteca(bool& baseDatosCreada, std::string& mensajeError) const;
 };
 
 #endif

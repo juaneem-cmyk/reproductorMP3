@@ -1,8 +1,6 @@
 #include "ControladorMinero.h"
 #include "ExplorarDirectorios.h"
-#include "InicializarBD.h"
 #include "LectorMetadatos.h"
-#include "Rutas.h"
 #include <cctype>
 #include <filesystem>
 #include <iostream>
@@ -10,47 +8,15 @@
 #include <vector>
 
 int ControladorMinero::ejecutar(int numeroArgumentos, char* listaArgumentos[]) const {
-    // Comprobar si se ha solicitado la inicialización de la base de datos
-    if (numeroArgumentos == 2 && std::string(listaArgumentos[1]) == "--inicializar-bd") {
-        return inicializarBaseDatos();
-    }
-
-    // Comprobar si se ha proporcionado un archivo o directorio como argumento
+    // Comprobar si se proporcionó un archivo o directorio
     if (numeroArgumentos != 2) {
-        std::cerr << "Uso:\n" << "  minero <archivo.mp3 | directorio>\n" << "  minero --inicializar-bd\n";
+        std::cerr << "Uso:\n" << "  minero <archivo.mp3 | directorio>\n";
         return 1;
     }
     return procesarRuta(listaArgumentos[1]);
 }
 
-// Inicializa la base de datos de la aplicación
-int ControladorMinero::inicializarBaseDatos() const {
-    std::string mensajeError;
-    // Preparar el directorio de datos de la aplicación
-    if (!Rutas::prepararDirectorioDatos(mensajeError)) {
-        std::cerr << "Error: " << mensajeError << '\n';
-        return 1;
-    }
-    const std::string rutaBaseDatos = Rutas::rutaBaseDatos().string();
-    const std::string rutaEsquema = Rutas::rutaEsquemaSQL().string();
-    InicializadorBaseDatos inicializador;
-    bool baseDatosCreada = false;
-
-    // Intentar inicializar la base de datos utilizando el esquema SQL
-    if (!inicializador.inicializar(rutaBaseDatos, rutaEsquema, baseDatosCreada, mensajeError)) {
-        std::cerr << "Error al inicializar SQLite: " << mensajeError << '\n';
-        return 1;
-    }
-
-    // Informar al usuario sobre el resultado de la inicialización de la base de datos
-    if (baseDatosCreada) {
-        std::cout << "Base de datos inicializada correctamente.\n";
-    } else {
-        std::cout << "La base de datos ya existía.\n";
-    }
-    return 0;
-}
-
+// Procesa la ruta proporcionada y busca archivos MP3
 int ControladorMinero::procesarRuta(const std::string& argumento) const {
     namespace fs = std::filesystem;
     const fs::path ruta(argumento);

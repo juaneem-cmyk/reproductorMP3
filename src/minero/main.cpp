@@ -1,8 +1,8 @@
-#include "ControladorMinero.h"
+#include "MineroABD.h"
 
 int main(int numeroArgumentos, char* listaArgumentos[]) {
-    ControladorMinero controlador;
-    return controlador.ejecutar(
+    MineroABD minero;
+    return minero.ejecutar(
         numeroArgumentos,
         listaArgumentos
     );

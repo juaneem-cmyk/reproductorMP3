@@ -3,7 +3,7 @@
 #include "Rutas.h"
 
 // Preparar el directorio y asegurar que exista la base de datos
-bool Biblioteca::preparar(bool& baseDatosCreada, std::string& mensajeError) const {
+bool Biblioteca::biblioteca(bool& baseDatosCreada, std::string& mensajeError) const {
     baseDatosCreada = false;
 
     // Preparar el directorio donde se guardan los datos

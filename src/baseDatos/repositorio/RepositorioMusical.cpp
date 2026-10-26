@@ -144,7 +144,8 @@ bool RepositorioMusical::obtenerOCrearInterprete(const std::string& nombre, int&
     return true;
 }
 
-bool RepositorioMusical::obtenerOCrearAlbum(const std::string& rutaArchivo, const std::string& nombreAlbum, unsigned int year, int& idAlbum, bool& tieneAlbum, std::string& mensajeError) const {
+bool RepositorioMusical::obtenerOCrearAlbum(const std::string& rutaArchivo, const std::string& nombreAlbum, 
+    unsigned int year, int& idAlbum, bool& tieneAlbum, std::string& mensajeError) const {
     idAlbum = 0;
     tieneAlbum = false;
 
@@ -274,7 +275,8 @@ bool RepositorioMusical::obtenerOCrearAlbum(const std::string& rutaArchivo, cons
     return true;
 }
 
-bool RepositorioMusical::registrarCancion(const std::string& rutaArchivo, const MetadatosMusicales& metadatos, bool& insertada, std::string& mensajeError) const {
+bool RepositorioMusical::registrarCancion(const std::string& rutaArchivo, const MetadatosMusicales& metadatos, 
+    bool& insertada, std::string& mensajeError) const {
     insertada = false;
 
     // Comprobar que exista una conexión abierta
