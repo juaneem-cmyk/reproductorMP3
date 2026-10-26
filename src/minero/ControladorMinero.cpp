@@ -1,6 +1,9 @@
 #include "ControladorMinero.h"
 #include "ExplorarDirectorios.h"
 #include "LectorMetadatos.h"
+#include "ConexionSQLite.h"
+#include "Rutas.h"
+#include "repositorio/RepositorioMusical.h"
 #include <cctype>
 #include <filesystem>
 #include <iostream>
@@ -55,10 +58,29 @@ int ControladorMinero::procesarRuta(const std::string& argumento) const {
         std::cout << "No se encontraron archivos MP3.\n";
         return 0;
     }
+    // Abrir la conexión con la base de datos de la biblioteca
+    ConexionSQLite conexion;
+    std::string mensajeErrorBD;
+
+    if (!conexion.abrir(Rutas::rutaBaseDatos().string(), mensajeErrorBD)) {
+        std::cerr << "Error al abrir SQLite: " << mensajeErrorBD << '\n';
+        return 1;
+    }
+
+    // Activar las claves foráneas para esta conexión
+    if (!conexion.ejecutarSQL("PRAGMA foreign_keys = ON;", mensajeErrorBD)) {
+        std::cerr << "Error al activar las claves foráneas: " << mensajeErrorBD << '\n';
+        return 1;
+    }
+    // Crear el repositorio utilizando la conexión existente
+    RepositorioMusical repositorio(conexion);
     std::cout << "Se encontraron " << archivosMP3.size() << " archivos con extensión MP3.\n\n";
     LectorMetadatosMP3 lector;
     unsigned int archivosProcesados = 0;
     unsigned int archivosOmitidos = 0;
+    unsigned int cancionesInsertadas = 0;
+    unsigned int cancionesExistentes = 0;
+    unsigned int erroresRegistro = 0;
 
     // Procesar cada archivo MP3 encontrado y leer sus metadatos
     for (const auto& rutaArchivo : archivosMP3) {
@@ -80,9 +102,27 @@ int ControladorMinero::procesarRuta(const std::string& argumento) const {
         std::cout << "Género: " << metadatos.genero << '\n';
         std::cout << "Número de pista: " << metadatos.numeroPista << '\n';
         std::cout << "Duración: " << metadatos.duracionSegundos << " segundos\n\n";
+
+        // Registrar la canción en SQLite si todavía no existe
+        bool insertada = false;
+        std::string mensajeErrorRegistro;
+
+        if (!repositorio.registrarCancion(rutaArchivo.string(), metadatos, insertada, mensajeErrorRegistro)) {
+            ++erroresRegistro;               
+            std::cerr << "Error al registrar la canción: " << mensajeErrorRegistro << "\n\n";
+        } else if (insertada) {
+            ++cancionesInsertadas;
+            std::cout << "Canción registrada en SQLite.\n\n";
+        } else {
+            ++cancionesExistentes;
+            std::cout << "La canción ya estaba registrada.\n\n";
+        }
         ++archivosProcesados;
     }
     std::cout << "Archivos procesados correctamente: " << archivosProcesados << '\n';
     std::cout << "Archivos omitidos: " << archivosOmitidos << '\n';
+    std::cout << "Canciones nuevas registradas: " << cancionesInsertadas << '\n';
+    std::cout << "Canciones que ya existían: " << cancionesExistentes << '\n';
+    std::cout << "Errores de registro en SQLite: " << erroresRegistro << '\n';
     return 0;
 }
