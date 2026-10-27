@@ -3,7 +3,49 @@
 #include <taglib/id3v2tag.h>
 #include <taglib/id3v2header.h>
 #include <taglib/audioproperties.h>
+#include <taglib/attachedpictureframe.h>
+#include <taglib/commentsframe.h>
+#include <taglib/textidentificationframe.h>
+#include <limits>
 #include <string>
+
+namespace {
+// Leer el texto de un marco de identificación de texto
+std::string leerTextoMarco(
+    TagLib::ID3v2::Tag* etiqueta, const char* identificador) {
+    const TagLib::ID3v2::FrameList marcos = etiqueta->frameList(identificador);
+
+    // Se toma el primer marco que coincida con el identificador
+    for (auto* marco : marcos) {
+        auto* marcoTexto = dynamic_cast<TagLib::ID3v2::TextIdentificationFrame*>(marco);
+
+        if (marcoTexto != nullptr) {
+            return marcoTexto->toString().to8Bit(true);
+        }
+    }
+    return {};
+}
+
+// Convertir una cadena numérica en un entero sin perder el valor por errores
+unsigned int convertirNumero(const std::string& texto) {
+    if (texto.empty()) {
+        return 0;
+    }
+
+    // Se utiliza stoul para convertir la cadena a un número sin signo
+    try {
+        std::size_t caracteresLeidos = 0;
+        const unsigned long valor = std::stoul(texto, &caracteresLeidos);
+
+        if (caracteresLeidos != texto.size() || valor > std::numeric_limits<unsigned int>::max()) {
+            return 0;
+        }
+        return static_cast<unsigned int>(valor);
+    } catch (...) {
+        return 0;
+    }
+}
+} 
 
 /** Lee los metadatos de un archivo MP3 y los almacena en una estructura.
     Devuelve true si los metadatos se leen correctamente, false en caso contrario. */
