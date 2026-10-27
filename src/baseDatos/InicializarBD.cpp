@@ -1,5 +1,5 @@
 #include "InicializarBD.h"
-#include "ConexionSQLite.h"
+#include "repositorio/RepositorioMusical.h"
 #include <filesystem>
 #include <fstream>
 #include <iterator>
@@ -43,37 +43,16 @@ bool InicializadorBaseDatos::inicializar(
         mensajeError = "El archivo del esquema SQL está vacío o no se pudo leer.";
         return false;
     }
-    bool inicializacionCorrecta = false;
-    std::string detalleError; {
-        ConexionSQLite conexion;
+    // Delegar la creación del esquema al DAO
+    std::string detalleError;
 
-        // Intentar abrir o crear la base de datos y ejecutar el esquema
-        if (!conexion.abrir(rutaBaseDatos, detalleError)) {
-            // No se pudo abrir o crear la base de datos
-        } else if (!conexion.ejecutarSQL("PRAGMA foreign_keys = ON;", detalleError)) {
-            // No se pudieron activar las claves foráneas
-        } else if (!conexion.ejecutarSQL("BEGIN IMMEDIATE;", detalleError)) {
-            // No se pudo comenzar la transacción
-        } else {
-            if (!conexion.ejecutarSQL(esquema, detalleError)) {
-                std::string errorRollback;
-                conexion.ejecutarSQL("ROLLBACK;", errorRollback);
-            } else if (!conexion.ejecutarSQL("COMMIT;", detalleError)) {
-                std::string errorRollback;
-                conexion.ejecutarSQL("ROLLBACK;", errorRollback);
-            } else {
-                inicializacionCorrecta = true;
-            }
-        }
-    }
-
-    // Si la inicialización no fue correcta, eliminar el archivo de la base de datos creado
-    if (!inicializacionCorrecta) {
+    if (!RepositorioMusical::crearBaseDatos(rutaBaseDatos, esquema, detalleError)) {
         mensajeError = "No se pudo inicializar la base de datos: " + detalleError;
+        // Si falló la inicialización, eliminar el archivo creado
         std::error_code errorEliminar;
         fs::remove(rutaBaseDatos, errorEliminar);
 
-        // Comprobar si hubo un error al eliminar el archivo de la base de datos
+        // Informar si tampoco se pudo eliminar el archivo
         if (errorEliminar) {
             mensajeError += " Además, no se pudo eliminar el archivo creado: " + errorEliminar.message();
         }

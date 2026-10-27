@@ -8,6 +8,11 @@ struct MetadatosMusicales;
 
 class RepositorioMusical {
 public:
+    static bool crearBaseDatos(
+    const std::string& rutaBaseDatos,
+    const std::string& esquema,
+    std::string& mensajeError);
+    
     explicit RepositorioMusical(ConexionSQLite& conexion);
 
     bool existeCancionPorRuta(const std::string& ruta, bool& existe, std::string& mensajeError) const;
