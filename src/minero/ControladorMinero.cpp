@@ -102,6 +102,25 @@ int ControladorMinero::procesarRuta(const std::string& argumento) const {
         std::cout << "Género: " << metadatos.genero << '\n';
         std::cout << "Número de pista: " << metadatos.numeroPista << '\n';
         std::cout << "Duración: " << metadatos.duracionSegundos << " segundos\n\n";
+        // Mostrar los metadatos adicionales
+        std::cout << "Artista del álbum: " << metadatos.artistaAlbum << '\n';
+        std::cout << "Texto de pista: " << metadatos.textoPista << '\n';
+        std::cout << "Total de pistas: " << metadatos.totalPistas << '\n';
+        std::cout << "Texto de disco: " << metadatos.textoDisco << '\n';
+        std::cout << "Número de disco: " << metadatos.numeroDisco << '\n';
+        std::cout << "Total de discos: " << metadatos.totalDiscos << '\n';
+        std::cout << "Compositor: " << metadatos.compositor << '\n';
+        std::cout << "Artista original: " << metadatos.artistaOriginal << '\n';
+        std::cout << "Comentarios encontrados: " << metadatos.comentarios.size() << '\n';
+        // Mostrar los comentarios encontrados en los metadatos
+        for (const auto& comentario : metadatos.comentarios) {
+            std::cout << "  Comentario: " << comentario.texto << '\n';
+        }
+        // Mostrar información descriptiva de las imágenes
+        std::cout << "Portada frontal: " << metadatos.portadaFrontal.descripcion << 
+        " (" << metadatos.portadaFrontal.datos.size() << " bytes)\n";
+        std::cout << "Imagen del artista: " << metadatos.imagenArtista.descripcion
+        << " (" << metadatos.imagenArtista.datos.size() << " bytes)\n";
 
         // Registrar la canción en SQLite si todavía no existe
         bool insertada = false;
