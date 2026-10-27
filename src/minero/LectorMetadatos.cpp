@@ -45,6 +45,37 @@ unsigned int convertirNumero(const std::string& texto) {
         return 0;
     }
 }
+
+// Leer valores como 03/07, que representan pista 3 de 7
+void separarPosicion(
+    const std::string& texto, unsigned int& numero, unsigned int& total) {
+    numero = 0;
+    total = 0;
+    const std::size_t separador = texto.find('/');
+
+    if (separador == std::string::npos) {
+        numero = convertirNumero(texto);
+        return;
+    }
+    numero = convertirNumero(texto.substr(0, separador));
+    total = convertirNumero(texto.substr(separador + 1));
+}
+
+// Copiar los datos de un marco APIC sin modificar el MP3
+ImagenIncrustada copiarImagen(
+    const TagLib::ID3v2::AttachedPictureFrame& marco) {
+    ImagenIncrustada imagen;
+    imagen.descripcion = marco.description().to8Bit(true);
+    imagen.tipoMime = marco.mimeType().to8Bit(true);
+    imagen.tipo = static_cast<int>(marco.type());
+    const TagLib::ByteVector datos = marco.picture();
+
+    if (datos.size() > 0) {
+        const auto* inicio = reinterpret_cast<const unsigned char*>(datos.data());
+        imagen.datos.assign(inicio, inicio + datos.size());
+    }
+    return imagen;
+}
 } 
 
 /** Lee los metadatos de un archivo MP3 y los almacena en una estructura.
@@ -75,7 +106,8 @@ bool LectorMetadatosMP3::leerArchivo(const std::string& rutaArchivo, MetadatosMu
     const unsigned int revision = cabecera->revisionNumber();
 
     if (versionMayor != 4 || revision != 0) {
-        mensajeError = "La etiqueta encontrada es ID3v2." + std::to_string(versionMayor) + "." + std::to_string(revision) + ", pero el proyecto requiere ID3v2.4.0.";
+        mensajeError = "La etiqueta encontrada es ID3v2." + std::to_string(versionMayor) + "." + 
+        std::to_string(revision) + ", pero el proyecto requiere ID3v2.4.0.";
         return false;
     }
     // Los campos pueden faltar aunque la etiqueta sí sea ID3v2.4.0
@@ -86,6 +118,30 @@ bool LectorMetadatosMP3::leerArchivo(const std::string& rutaArchivo, MetadatosMu
     metadatos.numeroPista = etiqueta->track();
     metadatos.genero = etiqueta->genre().to8Bit(true);
     TagLib::AudioProperties* propiedades = archivo.audioProperties();
+
+    // Leer los campos de texto adicionales de ID3v2.4.0
+    metadatos.artistaAlbum = leerTextoMarco(etiqueta, "TPE2");
+    metadatos.compositor = leerTextoMarco(etiqueta, "TCOM");
+    metadatos.artistaOriginal = leerTextoMarco(etiqueta, "TOPE");
+    // Conservar el texto original de la pista y separar sus números
+    metadatos.textoPista = leerTextoMarco(etiqueta, "TRCK");
+
+    if (!metadatos.textoPista.empty()) {
+        unsigned int numeroPista = 0;
+        unsigned int totalPistas = 0;
+        separarPosicion(metadatos.textoPista, numeroPista, totalPistas);
+
+        if (numeroPista != 0) {
+            metadatos.numeroPista = numeroPista;
+        }
+        metadatos.totalPistas = totalPistas;
+    }
+    // Leer el número de disco y el total, si están presentes
+    metadatos.textoDisco = leerTextoMarco(etiqueta, "TPOS");
+
+    if (!metadatos.textoDisco.empty()) {
+        separarPosicion(metadatos.textoDisco, metadatos.numeroDisco, metadatos.totalDiscos);
+    }
 
     // Se obtiene la duración del archivo en segundos si está disponible
     if (propiedades != nullptr) {
