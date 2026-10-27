@@ -142,6 +142,45 @@ bool LectorMetadatosMP3::leerArchivo(const std::string& rutaArchivo, MetadatosMu
     if (!metadatos.textoDisco.empty()) {
         separarPosicion(metadatos.textoDisco, metadatos.numeroDisco, metadatos.totalDiscos);
     }
+    // Leer todos los comentarios COMM presentes en la etiqueta
+    const TagLib::ID3v2::FrameList marcosComentarios = etiqueta->frameList("COMM");
+
+    for (auto* marco : marcosComentarios) {
+        auto* comentario = dynamic_cast<TagLib::ID3v2::CommentsFrame*>(marco);
+
+        if (comentario == nullptr) {
+            continue;
+        }
+        ComentarioMusical nuevoComentario;
+        const TagLib::ByteVector idioma = comentario->language();
+
+        if (idioma.size() > 0) {
+            nuevoComentario.idioma.assign(idioma.data(), static_cast<std::size_t>(idioma.size()));
+        }
+        nuevoComentario.descripcion = comentario->description().to8Bit(true);
+        nuevoComentario.texto = comentario->text().to8Bit(true);
+        metadatos.comentarios.push_back(nuevoComentario);
+    }
+    // Leer las imágenes incrustadas APIC
+    const TagLib::ID3v2::FrameList marcosImagenes = etiqueta->frameList("APIC");
+
+    for (auto* marco : marcosImagenes) {
+        auto* imagen = dynamic_cast<TagLib::ID3v2::AttachedPictureFrame*>(marco);
+
+        if (imagen == nullptr) {
+            continue;
+        }
+
+        // Conservar la portada frontal del álbum
+        if (imagen->type() == TagLib::ID3v2::AttachedPictureFrame::FrontCover && metadatos.portadaFrontal.datos.empty()) {
+            metadatos.portadaFrontal = copiarImagen(*imagen);
+        }
+
+        // Conservar la imagen correspondiente al artista
+        if (imagen->type() == TagLib::ID3v2::AttachedPictureFrame::Artist && metadatos.imagenArtista.datos.empty()) {
+            metadatos.imagenArtista = copiarImagen(*imagen);
+        }
+    }
 
     // Se obtiene la duración del archivo en segundos si está disponible
     if (propiedades != nullptr) {
