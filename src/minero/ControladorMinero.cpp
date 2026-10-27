@@ -114,7 +114,7 @@ int ControladorMinero::procesarRuta(const std::string& argumento) const {
         std::cout << "Comentarios encontrados: " << metadatos.comentarios.size() << '\n';
         // Mostrar los comentarios encontrados en los metadatos
         for (const auto& comentario : metadatos.comentarios) {
-            std::cout << "  Comentario: " << comentario.texto << '\n';
+            std::cout << " Comentario: " << comentario.texto << '\n';
         }
         // Mostrar información descriptiva de las imágenes
         std::cout << "Portada frontal: " << metadatos.portadaFrontal.descripcion << 
