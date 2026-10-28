@@ -58,11 +58,30 @@ int ControladorMinero::procesarRuta(const std::string& argumento) const {
         std::cout << "No se encontraron archivos MP3.\n";
         return 0;
     }
+    // Comprobar que la base de datos ya exista
+    const fs::path rutaBaseDatos = Rutas::rutaBaseDatos();
+    std::error_code errorBD;
+
+    if (!fs::exists(rutaBaseDatos, errorBD)) {
+        if (errorBD) {
+            std::cerr << "Error al comprobar la base de datos: " << errorBD.message() << '\n';
+        } else {
+            std::cerr << "La base de datos no existe. Inicialízala primero con:\n"
+            << "./build/src/minero/minero --inicializar-bd\n";
+        }
+        return 1;
+    }
+
+    // Comprobar que la ruta corresponda a un archivo regular
+    if (!fs::is_regular_file(rutaBaseDatos, errorBD) || errorBD) {
+        std::cerr << "Error: la ruta de la base de datos no es " << "un archivo regular o no se puede acceder.\n";
+        return 1;
+    }
     // Abrir la conexión con la base de datos de la biblioteca
     ConexionSQLite conexion;
     std::string mensajeErrorBD;
 
-    if (!conexion.abrir(Rutas::rutaBaseDatos().string(), mensajeErrorBD)) {
+    if (!conexion.abrir(rutaBaseDatos.string(), mensajeErrorBD)) {
         std::cerr << "Error al abrir SQLite: " << mensajeErrorBD << '\n';
         return 1;
     }
@@ -87,6 +106,32 @@ int ControladorMinero::procesarRuta(const std::string& argumento) const {
         MetadatosMusicales metadatos;
         std::string mensajeError;
         std::cout << "Archivo: " << rutaArchivo << '\n';
+        // Obtener una ruta absoluta y normalizada
+        std::error_code errorRuta;
+        const fs::path rutaNormalizada = fs::absolute(rutaArchivo, errorRuta).lexically_normal();
+
+        if (errorRuta) {
+            ++archivosOmitidos;
+            std::cerr << "Omitido: no se pudo normalizar la ruta: " << errorRuta.message() << "\n\n";
+            continue;
+        }
+        // Comprobar si la ruta ya está registrada en SQLite
+        bool yaRegistrada = false;
+        std::string mensajeErrorConsulta;
+
+        if (!repositorio.existeCancionPorRuta(rutaNormalizada.string(), yaRegistrada, mensajeErrorConsulta)) {
+            ++erroresRegistro;
+            std::cerr << "Error al comprobar la canción en SQLite: " << mensajeErrorConsulta << "\n\n";
+            continue;
+        }
+
+        // Si existe, conservar los datos guardados y no releer el MP3
+        if (yaRegistrada) {
+            ++archivosProcesados;
+            ++cancionesExistentes;
+            std::cout << "La canción ya estaba registrada; " << "se conservan sus datos en SQLite.\n\n";
+            continue;
+        }
 
         // Intentar leer los metadatos del archivo MP3
         if (!lector.leerArchivo(rutaArchivo.string(), metadatos, mensajeError)) {
@@ -126,7 +171,7 @@ int ControladorMinero::procesarRuta(const std::string& argumento) const {
         bool insertada = false;
         std::string mensajeErrorRegistro;
 
-        if (!repositorio.registrarCancion(rutaArchivo.string(), metadatos, insertada, mensajeErrorRegistro)) {
+        if (!repositorio.registrarCancion(rutaNormalizada.string(), metadatos, insertada, mensajeErrorRegistro)) {
             ++erroresRegistro;               
             std::cerr << "Error al registrar la canción: " << mensajeErrorRegistro << "\n\n";
         } else if (insertada) {
