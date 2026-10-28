@@ -1,5 +1,5 @@
 #include "InicializarBD.h"
-#include "repositorio/RepositorioMusical.h"
+#include "CrearBD.h"
 #include <filesystem>
 #include <fstream>
 #include <iterator>
@@ -45,8 +45,9 @@ bool InicializadorBaseDatos::inicializar(
     }
     // Delegar la creación del esquema al DAO
     std::string detalleError;
+    CrearBaseDatos creadorBD;
 
-    if (!RepositorioMusical::crearBaseDatos(rutaBaseDatos, esquema, detalleError)) {
+    if (!creadorBD.crearBaseDatos(rutaBaseDatos, esquema, detalleError)) {
         mensajeError = "No se pudo inicializar la base de datos: " + detalleError;
         // Si falló la inicialización, eliminar el archivo creado
         std::error_code errorEliminar;
