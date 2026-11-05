@@ -1,4 +1,4 @@
-#include "Rolas.h"
+#include "ConsultaRolas.h"
 #include <memory>
 #include <sqlite3.h>
 
@@ -61,7 +61,7 @@ bool Rolas::obtenerCanciones(std::vector<CancionBiblioteca>& canciones, std::str
         cancion.album = obtenerTexto(3);
         cancion.ruta = obtenerTexto(4);
         cancion.pista = sqlite3_column_int(sentencia.get(), 5);
-        cancion.anio = sqlite3_column_int(sentencia.get(), 6);
+        cancion.year = sqlite3_column_int(sentencia.get(), 6);
         cancion.genero = obtenerTexto(7);
         canciones.push_back(cancion);
     }

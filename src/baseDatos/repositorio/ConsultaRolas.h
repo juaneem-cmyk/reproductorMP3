@@ -13,7 +13,7 @@ struct CancionBiblioteca {
     std::string album;
     std::string ruta;
     int pista = 0;
-    int anio = 0;
+    int year = 0;
     std::string genero;
 };
 

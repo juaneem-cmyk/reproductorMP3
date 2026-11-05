@@ -10,6 +10,7 @@ struct CancionVista {
     QString artista;
     QString album;
     int year;
+    QString ruta;
 };
 
 class Canciones : public QAbstractTableModel {
@@ -23,5 +24,6 @@ public:
 
 private:
     std::vector<CancionVista> canciones;
+    void cargarCanciones();
 };
 #endif
