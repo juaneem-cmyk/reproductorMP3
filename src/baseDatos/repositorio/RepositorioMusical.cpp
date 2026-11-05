@@ -1,5 +1,5 @@
 #include "RepositorioMusical.h"
-
+#include "LectorMetadatos.h"
 #include <memory>
 #include <sqlite3.h>
 #include <filesystem>
@@ -144,7 +144,8 @@ bool RepositorioMusical::obtenerOCrearInterprete(const std::string& nombre, int&
     return true;
 }
 
-bool RepositorioMusical::obtenerOCrearAlbum(const std::string& rutaArchivo, const std::string& nombreAlbum, unsigned int year, int& idAlbum, bool& tieneAlbum, std::string& mensajeError) const {
+bool RepositorioMusical::obtenerOCrearAlbum(const std::string& rutaArchivo, const std::string& nombreAlbum, 
+    unsigned int year, int& idAlbum, bool& tieneAlbum, std::string& mensajeError) const {
     idAlbum = 0;
     tieneAlbum = false;
 
@@ -270,6 +271,146 @@ bool RepositorioMusical::obtenerOCrearAlbum(const std::string& rutaArchivo, cons
     }
     idAlbum = static_cast<int>(sqlite3_last_insert_rowid(baseDatos));
     tieneAlbum = true;
+    mensajeError.clear();
+    return true;
+}
+
+bool RepositorioMusical::registrarCancion(const std::string& rutaArchivo, const MetadatosMusicales& metadatos, 
+    bool& insertada, std::string& mensajeError) const {
+    insertada = false;
+
+    // Comprobar que exista una conexión abierta
+    if (!conexion.estaAbierta()) {
+        mensajeError = "No hay una conexión abierta con SQLite.";
+        return false;
+    }
+    // Obtener una ruta absoluta y normalizada
+    std::error_code errorRuta;
+    const std::filesystem::path rutaNormalizada = std::filesystem::absolute(rutaArchivo, errorRuta).lexically_normal();
+
+    if (errorRuta) {
+        mensajeError = "No se pudo obtener la ruta del archivo: " + errorRuta.message();
+        return false;
+    }
+
+    // Iniciar una transacción para mantener consistentes los registros
+    if (!conexion.ejecutarSQL("BEGIN IMMEDIATE;", mensajeError)) {
+        return false;
+    }
+    // Si ocurre un error, intentar deshacer los cambios de esta operación
+    auto cancelarTransaccion = [&]() {
+        std::string errorRollback;
+        conexion.ejecutarSQL("ROLLBACK;", errorRollback);
+    };
+    // Comprobar si la canción ya se encuentra registrada
+    bool existe = false;
+
+    if (!existeCancionPorRuta(rutaNormalizada.string(), existe, mensajeError)) {
+        cancelarTransaccion();
+        return false;
+    }
+
+    // Si ya existe, conservar sus datos y no insertar otra fila
+    if (existe) {
+        if (!conexion.ejecutarSQL("COMMIT;", mensajeError)) {
+            cancelarTransaccion();
+            return false;
+        }
+        mensajeError.clear();
+        return true;
+    }
+    // Obtener o crear el intérprete de la canción
+    int idInterprete = 0;
+
+    if (!obtenerOCrearInterprete(metadatos.artista, idInterprete, mensajeError)) {
+        cancelarTransaccion();
+        return false;
+    }
+    // Obtener o crear el álbum correspondiente, si existe una coincidencia
+    int idAlbum = 0;
+    bool tieneAlbum = false;
+
+    if (!obtenerOCrearAlbum(rutaNormalizada.string(), metadatos.album, metadatos.year, idAlbum, tieneAlbum, mensajeError)) {
+        cancelarTransaccion();
+        return false;
+    }
+    // Preparar la inserción de la canción
+    const char* insercion = "INSERT INTO rolas " "(id_performer, id_album, path, title, track, year, genre) "
+    "VALUES (?, ?, ?, ?, ?, ?, ?);";
+    sqlite3* baseDatos = conexion.obtenerManejador();
+    sqlite3_stmt* sentenciaTemporal = nullptr;
+    int codigo = sqlite3_prepare_v2(baseDatos, insercion, -1, &sentenciaTemporal, nullptr);
+
+    // Comprobar si la preparación de la sentencia fue exitosa
+    if (codigo != SQLITE_OK) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+
+        if (sentenciaTemporal != nullptr) {
+            sqlite3_finalize(sentenciaTemporal);
+        }
+        cancelarTransaccion();
+        return false;
+    }
+    // Liberar la sentencia preparada automáticamente
+    std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> sentencia(sentenciaTemporal, &sqlite3_finalize);
+    // Asociar el identificador del intérprete
+    codigo = sqlite3_bind_int(sentencia.get(), 1, idInterprete);
+
+    // Asociar el álbum o dejarlo en NULL si la canción está suelta
+    if (codigo == SQLITE_OK) {
+        if (tieneAlbum) {
+            codigo = sqlite3_bind_int(sentencia.get(), 2, idAlbum);
+        } else {
+            codigo = sqlite3_bind_null(sentencia.get(), 2);
+        }
+    }
+
+    // Asociar la ruta del archivo
+    if (codigo == SQLITE_OK) {
+        codigo = sqlite3_bind_text(sentencia.get(), 3, rutaNormalizada.string().c_str(), -1, SQLITE_TRANSIENT);
+    }
+
+    // Asociar el título
+    if (codigo == SQLITE_OK) {
+        codigo = sqlite3_bind_text(sentencia.get(), 4, metadatos.titulo.c_str(), -1, SQLITE_TRANSIENT);
+    }
+
+    // Asociar el número de pista
+    if (codigo == SQLITE_OK) {
+        codigo = sqlite3_bind_int64(sentencia.get(), 5, static_cast<sqlite3_int64>(metadatos.numeroPista));
+    }
+
+    // Asociar el año
+    if (codigo == SQLITE_OK) {
+        codigo = sqlite3_bind_int64(sentencia.get(), 6, static_cast<sqlite3_int64>(metadatos.year));
+    }
+
+    // Asociar el género
+    if (codigo == SQLITE_OK) {
+        codigo = sqlite3_bind_text(sentencia.get(), 7, metadatos.genero.c_str(), -1, SQLITE_TRANSIENT);
+    }
+
+    // Comprobar si todos los parámetros se asociaron correctamente
+    if (codigo != SQLITE_OK) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+        cancelarTransaccion();
+        return false;
+    }
+    // Ejecutar la inserción de la canción
+    codigo = sqlite3_step(sentencia.get());
+
+    if (codigo != SQLITE_DONE) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+        cancelarTransaccion();
+        return false;
+    }
+
+    // Confirmar los cambios de la operación
+    if (!conexion.ejecutarSQL("COMMIT;", mensajeError)) {
+        cancelarTransaccion();
+        return false;
+    }
+    insertada = true;
     mensajeError.clear();
     return true;
 }

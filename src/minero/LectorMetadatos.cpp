@@ -3,7 +3,80 @@
 #include <taglib/id3v2tag.h>
 #include <taglib/id3v2header.h>
 #include <taglib/audioproperties.h>
+#include <taglib/attachedpictureframe.h>
+#include <taglib/commentsframe.h>
+#include <taglib/textidentificationframe.h>
+#include <limits>
 #include <string>
+
+namespace {
+// Leer el texto de un marco de identificación de texto
+std::string leerTextoMarco(
+    TagLib::ID3v2::Tag* etiqueta, const char* identificador) {
+    const TagLib::ID3v2::FrameList marcos = etiqueta->frameList(identificador);
+
+    // Se toma el primer marco que coincida con el identificador
+    for (auto* marco : marcos) {
+        auto* marcoTexto = dynamic_cast<TagLib::ID3v2::TextIdentificationFrame*>(marco);
+
+        if (marcoTexto != nullptr) {
+            return marcoTexto->toString().to8Bit(true);
+        }
+    }
+    return {};
+}
+
+// Convertir una cadena numérica en un entero sin perder el valor por errores
+unsigned int convertirNumero(const std::string& texto) {
+    if (texto.empty()) {
+        return 0;
+    }
+
+    // Se utiliza stoul para convertir la cadena a un número sin signo
+    try {
+        std::size_t caracteresLeidos = 0;
+        const unsigned long valor = std::stoul(texto, &caracteresLeidos);
+
+        if (caracteresLeidos != texto.size() || valor > std::numeric_limits<unsigned int>::max()) {
+            return 0;
+        }
+        return static_cast<unsigned int>(valor);
+    } catch (...) {
+        return 0;
+    }
+}
+
+// Leer valores como 03/07, que representan pista 3 de 7
+void separarPosicion(
+    const std::string& texto, unsigned int& numero, unsigned int& total) {
+    numero = 0;
+    total = 0;
+    const std::size_t separador = texto.find('/');
+
+    if (separador == std::string::npos) {
+        numero = convertirNumero(texto);
+        return;
+    }
+    numero = convertirNumero(texto.substr(0, separador));
+    total = convertirNumero(texto.substr(separador + 1));
+}
+
+// Copiar los datos de un marco APIC sin modificar el MP3
+ImagenIncrustada copiarImagen(
+    const TagLib::ID3v2::AttachedPictureFrame& marco) {
+    ImagenIncrustada imagen;
+    imagen.descripcion = marco.description().to8Bit(true);
+    imagen.tipoMime = marco.mimeType().to8Bit(true);
+    imagen.tipo = static_cast<int>(marco.type());
+    const TagLib::ByteVector datos = marco.picture();
+
+    if (datos.size() > 0) {
+        const auto* inicio = reinterpret_cast<const unsigned char*>(datos.data());
+        imagen.datos.assign(inicio, inicio + datos.size());
+    }
+    return imagen;
+}
+} 
 
 /** Lee los metadatos de un archivo MP3 y los almacena en una estructura.
     Devuelve true si los metadatos se leen correctamente, false en caso contrario. */
@@ -33,7 +106,8 @@ bool LectorMetadatosMP3::leerArchivo(const std::string& rutaArchivo, MetadatosMu
     const unsigned int revision = cabecera->revisionNumber();
 
     if (versionMayor != 4 || revision != 0) {
-        mensajeError = "La etiqueta encontrada es ID3v2." + std::to_string(versionMayor) + "." + std::to_string(revision) + ", pero el proyecto requiere ID3v2.4.0.";
+        mensajeError = "La etiqueta encontrada es ID3v2." + std::to_string(versionMayor) + "." + 
+        std::to_string(revision) + ", pero el proyecto requiere ID3v2.4.0.";
         return false;
     }
     // Los campos pueden faltar aunque la etiqueta sí sea ID3v2.4.0
@@ -44,6 +118,69 @@ bool LectorMetadatosMP3::leerArchivo(const std::string& rutaArchivo, MetadatosMu
     metadatos.numeroPista = etiqueta->track();
     metadatos.genero = etiqueta->genre().to8Bit(true);
     TagLib::AudioProperties* propiedades = archivo.audioProperties();
+
+    // Leer los campos de texto adicionales de ID3v2.4.0
+    metadatos.artistaAlbum = leerTextoMarco(etiqueta, "TPE2");
+    metadatos.compositor = leerTextoMarco(etiqueta, "TCOM");
+    metadatos.artistaOriginal = leerTextoMarco(etiqueta, "TOPE");
+    // Conservar el texto original de la pista y separar sus números
+    metadatos.textoPista = leerTextoMarco(etiqueta, "TRCK");
+
+    if (!metadatos.textoPista.empty()) {
+        unsigned int numeroPista = 0;
+        unsigned int totalPistas = 0;
+        separarPosicion(metadatos.textoPista, numeroPista, totalPistas);
+
+        if (numeroPista != 0) {
+            metadatos.numeroPista = numeroPista;
+        }
+        metadatos.totalPistas = totalPistas;
+    }
+    // Leer el número de disco y el total, si están presentes
+    metadatos.textoDisco = leerTextoMarco(etiqueta, "TPOS");
+
+    if (!metadatos.textoDisco.empty()) {
+        separarPosicion(metadatos.textoDisco, metadatos.numeroDisco, metadatos.totalDiscos);
+    }
+    // Leer todos los comentarios COMM presentes en la etiqueta
+    const TagLib::ID3v2::FrameList marcosComentarios = etiqueta->frameList("COMM");
+
+    for (auto* marco : marcosComentarios) {
+        auto* comentario = dynamic_cast<TagLib::ID3v2::CommentsFrame*>(marco);
+
+        if (comentario == nullptr) {
+            continue;
+        }
+        ComentarioMusical nuevoComentario;
+        const TagLib::ByteVector idioma = comentario->language();
+
+        if (idioma.size() > 0) {
+            nuevoComentario.idioma.assign(idioma.data(), static_cast<std::size_t>(idioma.size()));
+        }
+        nuevoComentario.descripcion = comentario->description().to8Bit(true);
+        nuevoComentario.texto = comentario->text().to8Bit(true);
+        metadatos.comentarios.push_back(nuevoComentario);
+    }
+    // Leer las imágenes incrustadas APIC
+    const TagLib::ID3v2::FrameList marcosImagenes = etiqueta->frameList("APIC");
+
+    for (auto* marco : marcosImagenes) {
+        auto* imagen = dynamic_cast<TagLib::ID3v2::AttachedPictureFrame*>(marco);
+
+        if (imagen == nullptr) {
+            continue;
+        }
+
+        // Conservar la portada frontal del álbum
+        if (imagen->type() == TagLib::ID3v2::AttachedPictureFrame::FrontCover && metadatos.portadaFrontal.datos.empty()) {
+            metadatos.portadaFrontal = copiarImagen(*imagen);
+        }
+
+        // Conservar la imagen correspondiente al artista
+        if (imagen->type() == TagLib::ID3v2::AttachedPictureFrame::Artist && metadatos.imagenArtista.datos.empty()) {
+            metadatos.imagenArtista = copiarImagen(*imagen);
+        }
+    }
 
     // Se obtiene la duración del archivo en segundos si está disponible
     if (propiedades != nullptr) {

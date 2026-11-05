@@ -1,8 +1,9 @@
 #include "ControladorMinero.h"
 #include "ExplorarDirectorios.h"
-#include "InicializarBD.h"
 #include "LectorMetadatos.h"
+#include "ConexionSQLite.h"
 #include "Rutas.h"
+#include "repositorio/RepositorioMusical.h"
 #include <cctype>
 #include <filesystem>
 #include <iostream>
@@ -10,47 +11,15 @@
 #include <vector>
 
 int ControladorMinero::ejecutar(int numeroArgumentos, char* listaArgumentos[]) const {
-    // Comprobar si se ha solicitado la inicialización de la base de datos
-    if (numeroArgumentos == 2 && std::string(listaArgumentos[1]) == "--inicializar-bd") {
-        return inicializarBaseDatos();
-    }
-
-    // Comprobar si se ha proporcionado un archivo o directorio como argumento
+    // Comprobar si se proporcionó un archivo o directorio
     if (numeroArgumentos != 2) {
-        std::cerr << "Uso:\n" << "  minero <archivo.mp3 | directorio>\n" << "  minero --inicializar-bd\n";
+        std::cerr << "Uso:\n" << "  minero <archivo.mp3 | directorio>\n";
         return 1;
     }
     return procesarRuta(listaArgumentos[1]);
 }
 
-// Inicializa la base de datos de la aplicación
-int ControladorMinero::inicializarBaseDatos() const {
-    std::string mensajeError;
-    // Preparar el directorio de datos de la aplicación
-    if (!Rutas::prepararDirectorioDatos(mensajeError)) {
-        std::cerr << "Error: " << mensajeError << '\n';
-        return 1;
-    }
-    const std::string rutaBaseDatos = Rutas::rutaBaseDatos().string();
-    const std::string rutaEsquema = Rutas::rutaEsquemaSQL().string();
-    InicializadorBaseDatos inicializador;
-    bool baseDatosCreada = false;
-
-    // Intentar inicializar la base de datos utilizando el esquema SQL
-    if (!inicializador.inicializar(rutaBaseDatos, rutaEsquema, baseDatosCreada, mensajeError)) {
-        std::cerr << "Error al inicializar SQLite: " << mensajeError << '\n';
-        return 1;
-    }
-
-    // Informar al usuario sobre el resultado de la inicialización de la base de datos
-    if (baseDatosCreada) {
-        std::cout << "Base de datos inicializada correctamente.\n";
-    } else {
-        std::cout << "La base de datos ya existía.\n";
-    }
-    return 0;
-}
-
+// Procesa la ruta proporcionada y busca archivos MP3
 int ControladorMinero::procesarRuta(const std::string& argumento) const {
     namespace fs = std::filesystem;
     const fs::path ruta(argumento);
@@ -89,16 +58,80 @@ int ControladorMinero::procesarRuta(const std::string& argumento) const {
         std::cout << "No se encontraron archivos MP3.\n";
         return 0;
     }
+    // Comprobar que la base de datos ya exista
+    const fs::path rutaBaseDatos = Rutas::rutaBaseDatos();
+    std::error_code errorBD;
+
+    if (!fs::exists(rutaBaseDatos, errorBD)) {
+        if (errorBD) {
+            std::cerr << "Error al comprobar la base de datos: " << errorBD.message() << '\n';
+        } else {
+            std::cerr << "La base de datos no existe. Inicialízala primero con:\n"
+            << "./build/src/minero/minero --inicializar-bd\n";
+        }
+        return 1;
+    }
+
+    // Comprobar que la ruta corresponda a un archivo regular
+    if (!fs::is_regular_file(rutaBaseDatos, errorBD) || errorBD) {
+        std::cerr << "Error: la ruta de la base de datos no es " << "un archivo regular o no se puede acceder.\n";
+        return 1;
+    }
+    // Abrir la conexión con la base de datos de la biblioteca
+    ConexionSQLite conexion;
+    std::string mensajeErrorBD;
+
+    if (!conexion.abrir(rutaBaseDatos.string(), mensajeErrorBD)) {
+        std::cerr << "Error al abrir SQLite: " << mensajeErrorBD << '\n';
+        return 1;
+    }
+
+    // Activar las claves foráneas para esta conexión
+    if (!conexion.ejecutarSQL("PRAGMA foreign_keys = ON;", mensajeErrorBD)) {
+        std::cerr << "Error al activar las claves foráneas: " << mensajeErrorBD << '\n';
+        return 1;
+    }
+    // Crear el repositorio utilizando la conexión existente
+    RepositorioMusical repositorio(conexion);
     std::cout << "Se encontraron " << archivosMP3.size() << " archivos con extensión MP3.\n\n";
     LectorMetadatosMP3 lector;
     unsigned int archivosProcesados = 0;
     unsigned int archivosOmitidos = 0;
+    unsigned int cancionesInsertadas = 0;
+    unsigned int cancionesExistentes = 0;
+    unsigned int erroresRegistro = 0;
 
     // Procesar cada archivo MP3 encontrado y leer sus metadatos
     for (const auto& rutaArchivo : archivosMP3) {
         MetadatosMusicales metadatos;
         std::string mensajeError;
         std::cout << "Archivo: " << rutaArchivo << '\n';
+        // Obtener una ruta absoluta y normalizada
+        std::error_code errorRuta;
+        const fs::path rutaNormalizada = fs::absolute(rutaArchivo, errorRuta).lexically_normal();
+
+        if (errorRuta) {
+            ++archivosOmitidos;
+            std::cerr << "Omitido: no se pudo normalizar la ruta: " << errorRuta.message() << "\n\n";
+            continue;
+        }
+        // Comprobar si la ruta ya está registrada en SQLite
+        bool yaRegistrada = false;
+        std::string mensajeErrorConsulta;
+
+        if (!repositorio.existeCancionPorRuta(rutaNormalizada.string(), yaRegistrada, mensajeErrorConsulta)) {
+            ++erroresRegistro;
+            std::cerr << "Error al comprobar la canción en SQLite: " << mensajeErrorConsulta << "\n\n";
+            continue;
+        }
+
+        // Si existe, conservar los datos guardados y no releer el MP3
+        if (yaRegistrada) {
+            ++archivosProcesados;
+            ++cancionesExistentes;
+            std::cout << "La canción ya estaba registrada; " << "se conservan sus datos en SQLite.\n\n";
+            continue;
+        }
 
         // Intentar leer los metadatos del archivo MP3
         if (!lector.leerArchivo(rutaArchivo.string(), metadatos, mensajeError)) {
@@ -114,9 +147,46 @@ int ControladorMinero::procesarRuta(const std::string& argumento) const {
         std::cout << "Género: " << metadatos.genero << '\n';
         std::cout << "Número de pista: " << metadatos.numeroPista << '\n';
         std::cout << "Duración: " << metadatos.duracionSegundos << " segundos\n\n";
+        // Mostrar los metadatos adicionales
+        std::cout << "Artista del álbum: " << metadatos.artistaAlbum << '\n';
+        std::cout << "Texto de pista: " << metadatos.textoPista << '\n';
+        std::cout << "Total de pistas: " << metadatos.totalPistas << '\n';
+        std::cout << "Texto de disco: " << metadatos.textoDisco << '\n';
+        std::cout << "Número de disco: " << metadatos.numeroDisco << '\n';
+        std::cout << "Total de discos: " << metadatos.totalDiscos << '\n';
+        std::cout << "Compositor: " << metadatos.compositor << '\n';
+        std::cout << "Artista original: " << metadatos.artistaOriginal << '\n';
+        std::cout << "Comentarios encontrados: " << metadatos.comentarios.size() << '\n';
+        // Mostrar los comentarios encontrados en los metadatos
+        for (const auto& comentario : metadatos.comentarios) {
+            std::cout << " Comentario: " << comentario.texto << '\n';
+        }
+        // Mostrar información descriptiva de las imágenes
+        std::cout << "Portada frontal: " << metadatos.portadaFrontal.descripcion << 
+        " (" << metadatos.portadaFrontal.datos.size() << " bytes)\n";
+        std::cout << "Imagen del artista: " << metadatos.imagenArtista.descripcion
+        << " (" << metadatos.imagenArtista.datos.size() << " bytes)\n";
+
+        // Registrar la canción en SQLite si todavía no existe
+        bool insertada = false;
+        std::string mensajeErrorRegistro;
+
+        if (!repositorio.registrarCancion(rutaNormalizada.string(), metadatos, insertada, mensajeErrorRegistro)) {
+            ++erroresRegistro;               
+            std::cerr << "Error al registrar la canción: " << mensajeErrorRegistro << "\n\n";
+        } else if (insertada) {
+            ++cancionesInsertadas;
+            std::cout << "Canción registrada en SQLite.\n\n";
+        } else {
+            ++cancionesExistentes;
+            std::cout << "La canción ya estaba registrada.\n\n";
+        }
         ++archivosProcesados;
     }
     std::cout << "Archivos procesados correctamente: " << archivosProcesados << '\n';
     std::cout << "Archivos omitidos: " << archivosOmitidos << '\n';
+    std::cout << "Canciones nuevas registradas: " << cancionesInsertadas << '\n';
+    std::cout << "Canciones que ya existían: " << cancionesExistentes << '\n';
+    std::cout << "Errores de registro en SQLite: " << erroresRegistro << '\n';
     return 0;
 }

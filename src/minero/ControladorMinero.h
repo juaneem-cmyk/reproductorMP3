@@ -11,7 +11,6 @@ public:
     ) const;
 
 private:
-    int inicializarBaseDatos() const;
     int procesarRuta(const std::string& argumento) const;
 };
 
