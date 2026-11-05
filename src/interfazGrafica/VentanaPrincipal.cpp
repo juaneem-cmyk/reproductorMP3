@@ -2,6 +2,7 @@
 #include <QWidget>
 #include <QLabel>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <Qt>
 
 VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
@@ -23,10 +24,26 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
 
     // Reproductor
     QWidget *areaTrabajo = new QWidget(contenedor);
-    areaTrabajo->setObjectName("areaTrabajo");
+    areaTrabajo->setObjectName("areaTrabajo");    
+    QHBoxLayout *layoutPrincipal = new QHBoxLayout(areaTrabajo);
+    layoutPrincipal->setContentsMargins(20, 20, 20, 20);
+    layoutPrincipal->setSpacing(15);
+
+    // Panel izquierdo: portada y datos del álbum
+    QWidget *panelIzquierdo = new QWidget(areaTrabajo);
+    panelIzquierdo->setObjectName("panelIzquierdo");
+
+    // Panel derecho: lista de canciones
+    QWidget *panelDerecho = new QWidget(areaTrabajo);
+    panelDerecho->setObjectName("panelDerecho");
+    layoutPrincipal->addWidget(panelIzquierdo, 2);
+    layoutPrincipal->addWidget(panelDerecho, 3);
+
+    // Agregar los elementos al contenedor principal
     layout->addWidget(encabezado);
     layout->addWidget(areaTrabajo, 1);
-    setCentralWidget(contenedor);
+
+setCentralWidget(contenedor);
 
     // Estilos iniciales
     setStyleSheet(R"(
@@ -44,8 +61,13 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
             font-weight: bold;
             padding-left: 20px;
         }
-        QWidget#areaTrabajo {
-            background-color: #20251B;
+        QWidget#panelIzquierdo {
+        background-color: #303B27;
+        border: 2px solid #503923;
+        }
+        QWidget#panelDerecho {
+        background-color: #292F23;
+        border: 2px solid #503923;
         }
     )");
 }
