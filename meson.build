@@ -6,3 +6,4 @@ sqlite3 = dependency('sqlite3', method: 'pkg-config')
 add_project_arguments('-DREPRODUCTORMP3_SOURCE_DIR="' + meson.project_source_root() + '"', language: 'cpp')
 
 subdir('src/minero')
+subdir('src/interfazGrafica')
