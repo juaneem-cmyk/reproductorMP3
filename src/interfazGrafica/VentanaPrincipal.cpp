@@ -1,5 +1,6 @@
 #include "VentanaPrincipal.h"
 #include "componentes/Portada.h"
+#include "paneles/PanelAlbum.h"
 #include <QWidget>
 #include <QLabel>
 #include <QVBoxLayout>
@@ -30,17 +31,8 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     layoutPrincipal->setContentsMargins(20, 20, 20, 20);
     layoutPrincipal->setSpacing(15);
 
-    // Panel izquierdo: portada y datos del álbum
-    QWidget *panelIzquierdo = new QWidget(areaTrabajo);
-    panelIzquierdo->setObjectName("panelIzquierdo");
-    // Distribución interna
-    QVBoxLayout *layoutIzquierdo = new QVBoxLayout(panelIzquierdo);
-    layoutIzquierdo->setContentsMargins(10, 10, 10, 10);    
-    layoutIzquierdo->setSpacing(15);
-
-    // Componente de portada
-    Portada *marcoPortada = new Portada(panelIzquierdo);
-    layoutIzquierdo->addWidget(marcoPortada, 1);
+    // Panel izquierdo: información del álbum
+    PanelAlbum *panelIzquierdo = new PanelAlbum(areaTrabajo);
 
     // Panel derecho: lista de canciones
     QWidget *panelDerecho = new QWidget(areaTrabajo);
