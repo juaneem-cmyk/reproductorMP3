@@ -7,5 +7,4 @@ class VentanaPrincipal : public QMainWindow {
 public:
     explicit VentanaPrincipal(QWidget *parent = nullptr);
 };
-
 #endif

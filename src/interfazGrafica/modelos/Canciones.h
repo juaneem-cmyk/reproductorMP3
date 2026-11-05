@@ -1,0 +1,27 @@
+#ifndef CANCIONES_H
+#define CANCIONES_H
+
+#include <QAbstractTableModel>
+#include <QString>
+#include <vector>
+
+struct CancionVista {
+    QString titulo;
+    QString artista;
+    QString album;
+    int year;
+};
+
+class Canciones : public QAbstractTableModel {
+public:
+    explicit Canciones(QObject *parent = nullptr);
+    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+    int columnCount(const QModelIndex &parent = QModelIndex()) const override;
+
+    QVariant data(const QModelIndex &indice, int rol = Qt::DisplayRole) const override;
+    QVariant headerData(int seccion, Qt::Orientation orientacion, int rol = Qt::DisplayRole) const override;
+
+private:
+    std::vector<CancionVista> canciones;
+};
+#endif

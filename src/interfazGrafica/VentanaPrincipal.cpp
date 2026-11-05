@@ -1,6 +1,7 @@
 #include "VentanaPrincipal.h"
 #include "componentes/Portada.h"
 #include "paneles/PanelAlbum.h"
+#include "paneles/PanelCanciones.h"
 #include <QWidget>
 #include <QLabel>
 #include <QVBoxLayout>
@@ -35,10 +36,7 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     PanelAlbum *panelIzquierdo = new PanelAlbum(areaTrabajo);
 
     // Panel derecho: lista de canciones
-    QWidget *panelDerecho = new QWidget(areaTrabajo);
-    panelDerecho->setObjectName("panelDerecho");
-    layoutPrincipal->addWidget(panelIzquierdo, 2);
-    layoutPrincipal->addWidget(panelDerecho, 3);
+    PanelCanciones *panelDerecho = new PanelCanciones(areaTrabajo);
 
     // Agregar los elementos al contenedor principal
     layout->addWidget(encabezado);

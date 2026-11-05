@@ -7,5 +7,4 @@ class PanelAlbum : public QWidget {
 public:
     explicit PanelAlbum(QWidget *parent = nullptr);
 };
-
 #endif
