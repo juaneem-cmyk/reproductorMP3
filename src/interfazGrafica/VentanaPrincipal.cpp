@@ -1,10 +1,9 @@
 #include "VentanaPrincipal.h"
+#include "componentes/Portada.h"
 #include <QWidget>
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QFrame>
-#include <QPixmap>
 #include <Qt>
 
 VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
@@ -39,25 +38,9 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     layoutIzquierdo->setContentsMargins(10, 10, 10, 10);    
     layoutIzquierdo->setSpacing(15);
 
-    // Marco de la portada
-    QFrame *marcoPortada = new QFrame(panelIzquierdo);
-    marcoPortada->setObjectName("marcoPortada");
-    marcoPortada->setFixedSize(400, 400);
-
-    // Imagen de portada
-    QLabel *portada = new QLabel(marcoPortada);
-    portada->setObjectName("portada");
-    portada->setAlignment(Qt::AlignCenter);
-    portada->setText("PORTADA");
-
-    // Distribución del marco
-    QVBoxLayout *layoutPortada = new QVBoxLayout(marcoPortada);
-    layoutPortada->setContentsMargins(0, 0, 0, 0);
-    layoutPortada->addWidget(portada);
-
-    // Centrar la portada
-    layoutIzquierdo->addWidget(marcoPortada, 0, Qt::AlignHCenter);
-    layoutIzquierdo->addStretch();
+    // Componente de portada
+    Portada *marcoPortada = new Portada(panelIzquierdo);
+    layoutIzquierdo->addWidget(marcoPortada, 1);
 
     // Panel derecho: lista de canciones
     QWidget *panelDerecho = new QWidget(areaTrabajo);
@@ -92,14 +75,15 @@ setCentralWidget(contenedor);
         border: 2px solid #503923;
         }
         QFrame#marcoPortada {
-        background-color: #303B27;
-        border: 1px solid #503923;
+        background-color: transparent;
+        border: none;
         }
         QLabel#portada {
         background-color: #39452E;
         color: #E6E5D7;
         font-size: 20px;
         font-weight: bold;
+        border: 1px solid #503923;
         }
         QWidget#panelDerecho {
         background-color: #292F23;
