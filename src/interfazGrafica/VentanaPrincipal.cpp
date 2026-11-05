@@ -38,6 +38,10 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     // Panel derecho: lista de canciones
     PanelCanciones *panelDerecho = new PanelCanciones(areaTrabajo);
 
+    // Agregar paneles al área de trabajo
+    layoutPrincipal->addWidget(panelIzquierdo, 2);
+    layoutPrincipal->addWidget(panelDerecho, 3);
+
     // Agregar los elementos al contenedor principal
     layout->addWidget(encabezado);
     layout->addWidget(areaTrabajo, 1);

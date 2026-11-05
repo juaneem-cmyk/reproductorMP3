@@ -4,7 +4,7 @@
 #include <QWidget>
 
 class QTableView;
-class ModeloCanciones;
+class Canciones;
 
 class PanelCanciones : public QWidget {
 public:
@@ -12,6 +12,6 @@ public:
 
 private:
     QTableView *tablaCanciones;
-    ModeloCanciones *modeloCanciones;
+    Canciones *modeloCanciones;
 };
 #endif
