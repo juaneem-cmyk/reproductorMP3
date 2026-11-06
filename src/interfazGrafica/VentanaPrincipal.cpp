@@ -38,13 +38,6 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     layoutPrincipal->setContentsMargins(20, 20, 20, 20);
     layoutPrincipal->setSpacing(15);
 
-    // Área de portada y canciones
-    layout->addWidget(areaTrabajo, 1);
-
-    // Controles inferiores
-    PanelControles *panelControles = new PanelControles(contenedor);
-    layout->addWidget(panelControles);
-
     // Panel izquierdo: información del álbum
     PanelAlbum *panelIzquierdo = new PanelAlbum(areaTrabajo);
 
@@ -58,6 +51,10 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     // Agregar los elementos al contenedor principal
     layout->addWidget(encabezado);
     layout->addWidget(areaTrabajo, 1);
+
+    // Controles inferiores
+    PanelControles *panelControles = new PanelControles(contenedor);
+    layout->addWidget(panelControles);
     setCentralWidget(contenedor);
 
     // Conexión para actualizar la portada cuando se selecciona una canción
