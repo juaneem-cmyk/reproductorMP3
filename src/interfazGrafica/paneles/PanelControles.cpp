@@ -122,3 +122,23 @@ void PanelControles::establecerEstadoReproduccion(bool reproduciendo) {
         botonReproducir->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
     }
 }
+
+QPushButton *PanelControles::obtenerBotonAnterior() const {
+    return botonAnterior;
+}
+
+QPushButton *PanelControles::obtenerBotonReproducir() const {
+    return botonReproducir;
+}
+
+QPushButton *PanelControles::obtenerBotonSiguiente() const {
+    return botonSiguiente;
+}
+
+QSlider *PanelControles::obtenerBarraProgreso() const {
+    return barraProgreso;
+}
+
+QSlider *PanelControles::obtenerControlVolumen() const {
+    return controlVolumen;
+}

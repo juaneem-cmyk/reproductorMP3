@@ -15,6 +15,13 @@ public:
     void actualizarTiempo(qint64 posicion, qint64 duracion);
     void establecerEstadoReproduccion(bool reproduciendo);
 
+    // Métodos para obtener los botones y controles
+    QPushButton *obtenerBotonAnterior() const;
+    QPushButton *obtenerBotonReproducir() const;
+    QPushButton *obtenerBotonSiguiente() const;    
+    QSlider *obtenerBarraProgreso() const;
+    QSlider *obtenerControlVolumen() const;
+
 private:
     // Barra de reproducción
     QSlider *barraProgreso;
