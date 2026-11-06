@@ -12,6 +12,9 @@ class PanelControles : public QWidget {
 public:
     explicit PanelControles(QWidget *parent = nullptr);
 
+    void actualizarTiempo(qint64 posicion, qint64 duracion);
+    void establecerEstadoReproduccion(bool reproduciendo);
+
 private:
     // Barra de reproducción
     QSlider *barraProgreso;

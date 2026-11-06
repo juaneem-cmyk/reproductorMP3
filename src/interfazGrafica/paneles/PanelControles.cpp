@@ -11,6 +11,7 @@
 PanelControles::PanelControles(QWidget *parent) : QWidget(parent) {
     // Barra de reproducción
     setObjectName("panelControles");
+    barraProgreso->setEnabled(false);
     barraProgreso = new QSlider(Qt::Horizontal, this);
     barraProgreso->setObjectName("barraProgreso");
     barraProgreso->setRange(0, 1000);
@@ -90,4 +91,34 @@ PanelControles::PanelControles(QWidget *parent) : QWidget(parent) {
     layoutPrincipal->setSpacing(0);
     layoutPrincipal->addWidget(barraProgreso);
     layoutPrincipal->addLayout(layoutInferior);
+}
+
+// Actualizar el tiempo de reproducción
+void PanelControles::actualizarTiempo(qint64 posicion, qint64 duracion) {
+
+    // Convertir milisegundos a segundos
+    qint64 segundosActuales = posicion / 1000;
+    qint64 segundosTotales = duracion / 1000;
+
+    // Obtener minutos y segundos
+    qint64 minutosActuales = segundosActuales / 60;
+    qint64 segundosRestantes = segundosActuales % 60;
+    qint64 minutosTotales = segundosTotales / 60;
+    qint64 segundosTotalesRestantes = segundosTotales % 60;
+
+    // Formatear el tiempo
+    QString tiempo = QString("%1:%2/%3:%4").arg(minutosActuales)
+    .arg(segundosRestantes, 2, 10, QChar('0')).arg(minutosTotales)
+    .arg(segundosTotalesRestantes, 2, 10, QChar('0'));
+    tiempoReproduccion->setText(tiempo);
+}
+
+// Actualizar el icono del botón de reproducción
+void PanelControles::establecerEstadoReproduccion(bool reproduciendo) {
+
+    if (reproduciendo) {
+        botonReproducir->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
+    } else {
+        botonReproducir->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
+    }
 }
