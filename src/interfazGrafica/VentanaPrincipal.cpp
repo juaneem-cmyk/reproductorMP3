@@ -2,10 +2,15 @@
 #include "componentes/Portada.h"
 #include "paneles/PanelAlbum.h"
 #include "paneles/PanelCanciones.h"
+#include "../minero/LectorMetadatos.h"
+#include <QItemSelectionModel>
+#include <QImage>
+#include <QDebug>
 #include <QWidget>
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
+#include <QTableView>
 #include <Qt>
 
 VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
@@ -45,8 +50,42 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     // Agregar los elementos al contenedor principal
     layout->addWidget(encabezado);
     layout->addWidget(areaTrabajo, 1);
+    setCentralWidget(contenedor);
 
-setCentralWidget(contenedor);
+    // Conexión para actualizar la portada cuando se selecciona una canción
+    LectorMetadatosMP3 lector;
+    connect(panelDerecho->obtenerTabla()->selectionModel(), &QItemSelectionModel::currentRowChanged,
+    this, [panelIzquierdo, panelDerecho, lector](const QModelIndex &actual, const QModelIndex &) {
+        if (!actual.isValid()) {
+            panelIzquierdo->limpiarPortada();
+            return;
+        }
+        QString ruta = panelDerecho->obtenerRutaCancion(actual.row());
+        MetadatosMusicales metadatos;
+        std::string error;
+
+        if (!lector.leerArchivo(ruta.toStdString(), metadatos, error)) {
+            qWarning() << "No se pudieron leer los metadatos:" << QString::fromStdString(error);
+            panelIzquierdo->limpiarPortada();
+            return;
+        }
+        const auto &datos = metadatos.portadaFrontal.datos;
+
+        if (datos.empty()) {
+            panelIzquierdo->limpiarPortada();
+            return;
+        }
+        QImage imagen = QImage::fromData(reinterpret_cast<const uchar *>(datos.data()),
+        static_cast<int>(datos.size())
+        );
+
+        if (imagen.isNull()) {
+            panelIzquierdo->limpiarPortada();
+            return;
+        }
+        panelIzquierdo->establecerPortada(imagen);
+    }
+    );
 
     // Estilos iniciales
     setStyleSheet(R"(

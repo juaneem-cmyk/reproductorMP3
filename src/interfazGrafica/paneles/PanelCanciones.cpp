@@ -61,3 +61,11 @@ PanelCanciones::PanelCanciones(QWidget *parent) : QWidget(parent) {
         }
     )");
 }
+
+QTableView *PanelCanciones::obtenerTabla() const {
+    return tablaCanciones;
+}
+
+QString PanelCanciones::obtenerRutaCancion(int fila) const {
+    return modeloCanciones->rutaEnFila(fila);
+}

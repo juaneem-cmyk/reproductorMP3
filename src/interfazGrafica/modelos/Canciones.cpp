@@ -124,3 +124,10 @@ QVariant Canciones::headerData(int seccion, Qt::Orientation orientacion, int rol
     }
     return {};
 }
+
+QString Canciones::rutaEnFila(int fila) const {
+    if (fila < 0 || fila >= static_cast<int>(canciones.size())) {
+        return {};
+    }
+    return canciones[fila].ruta;
+}
