@@ -2,6 +2,7 @@
 #include "componentes/Portada.h"
 #include "paneles/PanelAlbum.h"
 #include "paneles/PanelCanciones.h"
+#include "paneles/PanelControles.h"
 #include "../minero/LectorMetadatos.h"
 #include <QItemSelectionModel>
 #include <QImage>
@@ -36,6 +37,13 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     QHBoxLayout *layoutPrincipal = new QHBoxLayout(areaTrabajo);
     layoutPrincipal->setContentsMargins(20, 20, 20, 20);
     layoutPrincipal->setSpacing(15);
+
+    // Área de portada y canciones
+    layout->addWidget(areaTrabajo, 1);
+
+    // Controles inferiores
+    PanelControles *panelControles = new PanelControles(contenedor);
+    layout->addWidget(panelControles);
 
     // Panel izquierdo: información del álbum
     PanelAlbum *panelIzquierdo = new PanelAlbum(areaTrabajo);

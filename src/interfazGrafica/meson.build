@@ -4,8 +4,8 @@ executable('reproductor', 'main.cpp', 'VentanaPrincipal.cpp',
     # Componentes visuales
     'componentes/Portada.cpp',
     'modelos/Canciones.cpp',
-    'paneles/PanelAlbum.cpp',
-    'paneles/PanelCanciones.cpp',
+    'paneles/PanelAlbum.cpp', 'paneles/PanelCanciones.cpp',
+    'paneles/PanelControles.cpp',
 
     # Lector de metadatos
     '../minero/LectorMetadatos.cpp',
