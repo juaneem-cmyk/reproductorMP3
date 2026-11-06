@@ -3,8 +3,12 @@
 #include "paneles/PanelAlbum.h"
 #include "paneles/PanelCanciones.h"
 #include "paneles/PanelControles.h"
+#include "reproduccion/ControladoRep.h"
 #include "../minero/LectorMetadatos.h"
-#include <QItemSelectionModel>
+#include <QMediaPlayer>
+#include <QPushButton>
+#include <QSlider>
+#include <QModelIndex>
 #include <QImage>
 #include <QDebug>
 #include <QWidget>
@@ -55,17 +59,21 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     // Controles inferiores
     PanelControles *panelControles = new PanelControles(contenedor);
     layout->addWidget(panelControles);
-    setCentralWidget(contenedor);
+    ControladorReproduccion *controlador = new ControladorReproduccion(this);
 
-    // Conexión para actualizar la portada cuando se selecciona una canción
-    LectorMetadatosMP3 lector;
-    connect(panelDerecho->obtenerTabla()->selectionModel(), &QItemSelectionModel::currentRowChanged,
-    this, [panelIzquierdo, panelDerecho, lector](const QModelIndex &actual, const QModelIndex &) {
-        if (!actual.isValid()) {
-            panelIzquierdo->limpiarPortada();
+    // Reproducir una canción al hacer doble clic
+    LectorMetadatosMP3 lector;    
+    connect(panelDerecho->obtenerTabla(), &QTableView::doubleClicked, this, [=](const QModelIndex &indice) {
+        if (!indice.isValid())
             return;
-        }
-        QString ruta = panelDerecho->obtenerRutaCancion(actual.row());
+
+        QString ruta = panelDerecho->obtenerRutaCancion(indice.row());
+
+        // Cargar y reproducir la canción
+        controlador->cargarCancion(ruta);
+        controlador->reproducir();
+
+        // Leer los metadatos para obtener la portada
         MetadatosMusicales metadatos;
         std::string error;
 
@@ -80,17 +88,62 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
             panelIzquierdo->limpiarPortada();
             return;
         }
-        QImage imagen = QImage::fromData(reinterpret_cast<const uchar *>(datos.data()),
-        static_cast<int>(datos.size())
-        );
+        QImage imagen = QImage::fromData(reinterpret_cast<const uchar *>(datos.data()), static_cast<int>(datos.size()));
 
         if (imagen.isNull()) {
             panelIzquierdo->limpiarPortada();
             return;
         }
         panelIzquierdo->establecerPortada(imagen);
-    }
-    );
+    });
+
+    // Botón reproducir / pausar
+    connect(panelControles->obtenerBotonReproducir(), &QPushButton::clicked, this, [=]() {
+        if (controlador->estaReproduciendo())
+            controlador->pausar();
+        else
+            controlador->reproducir();
+    });
+
+    // Botón anterior
+    connect(panelControles->obtenerBotonAnterior(), &QPushButton::clicked, this, []() {
+        qDebug() << "Canción anterior: pendiente";
+    });
+
+    // Botón siguiente
+    connect(panelControles->obtenerBotonSiguiente(), &QPushButton::clicked, this, []() {
+        qDebug() << "Canción siguiente: pendiente";
+    });
+
+    // Control de volumen
+    connect(panelControles->obtenerControlVolumen(), &QSlider::valueChanged, this, [=](int volumen) {
+        controlador->establecerVolumen(volumen / 100.0f);
+    });
+
+    // Actualizar el tiempo de reproducción
+    QMediaPlayer *reproductor = controlador->obtenerReproductor();
+    connect(reproductor, &QMediaPlayer::positionChanged, this, [=](qint64 posicion) {
+        panelControles->actualizarTiempo(posicion, controlador->obtenerDuracion());
+    });
+
+    connect(reproductor, &QMediaPlayer::durationChanged, this, [=](qint64 duracion) {
+        panelControles->actualizarTiempo(controlador->obtenerPosicion(), duracion);
+    });
+
+    // Actualizar el icono de reproducción / pausa
+    connect(reproductor, &QMediaPlayer::playbackStateChanged, this, [=](QMediaPlayer::PlaybackState estado) {
+        panelControles->establecerEstadoReproduccion(estado == QMediaPlayer::PlayingState);
+    });
+
+    // Permitir adelantar o retroceder desde la barra de progreso
+    connect(panelControles->obtenerBarraProgreso(), &QSlider::sliderMoved, this, [=](int valor) {
+        qint64 duracion = controlador->obtenerDuracion();
+
+        if (duracion > 0) {
+            qint64 posicion = (duracion * valor) / 1000;
+            controlador->establecerPosicion(posicion);
+        }
+    });
 
     // Estilos iniciales
     setStyleSheet(R"(
@@ -128,4 +181,6 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
         border: 2px solid #503923;
         }
     )");
+    // Establecer el contenedor principal como el widget central de la ventana
+    setCentralWidget(contenedor);
 }

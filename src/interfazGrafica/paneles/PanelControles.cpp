@@ -11,8 +11,8 @@
 PanelControles::PanelControles(QWidget *parent) : QWidget(parent) {
     // Barra de reproducción
     setObjectName("panelControles");
-    barraProgreso->setEnabled(false);
     barraProgreso = new QSlider(Qt::Horizontal, this);
+    barraProgreso->setEnabled(false);
     barraProgreso->setObjectName("barraProgreso");
     barraProgreso->setRange(0, 1000);
     barraProgreso->setValue(0);

@@ -27,6 +27,10 @@ public:
     qint64 obtenerDuracion() const;
     bool estaReproduciendo() const;
 
+    // Establece la posición de reproducción en milisegundos
+    void establecerPosicion(qint64 posicion);
+    QMediaPlayer *obtenerReproductor() const;
+
 private:
     QMediaPlayer *reproductor;
     QAudioOutput *salidaAudio;

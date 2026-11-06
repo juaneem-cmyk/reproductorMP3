@@ -58,3 +58,12 @@ qint64 ControladorReproduccion::obtenerDuracion() const {
 bool ControladorReproduccion::estaReproduciendo() const {
     return reproductor->playbackState() == QMediaPlayer::PlayingState;
 }
+
+// Establece la posición de reproducción en milisegundos
+QMediaPlayer *ControladorReproduccion::obtenerReproductor() const {
+    return reproductor;
+}
+
+void ControladorReproduccion::establecerPosicion(qint64 posicion) {
+    reproductor->setPosition(posicion);
+}
