@@ -17,6 +17,7 @@
 #include <QHBoxLayout>
 #include <QTableView>
 #include <Qt>
+#include <memory>
 
 VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     setWindowTitle("Reproductor");
@@ -61,40 +62,38 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     layout->addWidget(panelControles);
     ControladorReproduccion *controlador = new ControladorReproduccion(this);
 
-    // Reproducir una canción al hacer doble clic
-    LectorMetadatosMP3 lector;    
-    connect(panelDerecho->obtenerTabla(), &QTableView::doubleClicked, this, [=](const QModelIndex &indice) {
-        if (!indice.isValid())
+    // Función para cargar y reproducir una canción
+    auto filaActual = std::make_shared<int>(-1);
+    auto reproducirFila = [panelDerecho, panelIzquierdo, controlador, filaActual](int fila) {
+        int totalCanciones = panelDerecho->obtenerTabla()->model()->rowCount();
+
+        if (fila < 0 || fila >= totalCanciones){
             return;
-
-        QString ruta = panelDerecho->obtenerRutaCancion(indice.row());
-
-        // Cargar y reproducir la canción
+        }
+        *filaActual = fila;
+        QString ruta = panelDerecho->obtenerRutaCancion(fila);
         controlador->cargarCancion(ruta);
         controlador->reproducir();
-
-        // Leer los metadatos para obtener la portada
+        LectorMetadatosMP3 lector;
         MetadatosMusicales metadatos;
         std::string error;
 
-        if (!lector.leerArchivo(ruta.toStdString(), metadatos, error)) {
-            qWarning() << "No se pudieron leer los metadatos:" << QString::fromStdString(error);
-            panelIzquierdo->limpiarPortada();
-            return;
+        // Leer los metadatos y actualizar la portada
+        if (lector.leerArchivo(ruta.toStdString(), metadatos, error)) {
+            if (!metadatos.portadaFrontal.datos.empty()) {
+                QImage imagen;
+                imagen.loadFromData(metadatos.portadaFrontal.datos.data(), 
+                static_cast<int>(metadatos.portadaFrontal.datos.size()));
+                panelIzquierdo->establecerPortada(imagen);
+            } else {
+                panelIzquierdo->limpiarPortada();
+            }
         }
-        const auto &datos = metadatos.portadaFrontal.datos;
+    };
 
-        if (datos.empty()) {
-            panelIzquierdo->limpiarPortada();
-            return;
-        }
-        QImage imagen = QImage::fromData(reinterpret_cast<const uchar *>(datos.data()), static_cast<int>(datos.size()));
-
-        if (imagen.isNull()) {
-            panelIzquierdo->limpiarPortada();
-            return;
-        }
-        panelIzquierdo->establecerPortada(imagen);
+    // Doble clic para reproducir
+    connect(panelDerecho->obtenerTabla(), &QTableView::doubleClicked, this, [reproducirFila](const QModelIndex& indice) {
+        reproducirFila(indice.row());
     });
 
     // Botón reproducir / pausar
@@ -105,14 +104,14 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
             controlador->reproducir();
     });
 
-    // Botón anterior
-    connect(panelControles->obtenerBotonAnterior(), &QPushButton::clicked, this, []() {
-        qDebug() << "Canción anterior: pendiente";
-    });
+    // Canción anterior
+    connect(panelControles->obtenerBotonAnterior(), &QPushButton::clicked, this, [reproducirFila, filaActual]() {
+        reproducirFila(*filaActual - 1);
+    });  
 
-    // Botón siguiente
-    connect(panelControles->obtenerBotonSiguiente(), &QPushButton::clicked, this, []() {
-        qDebug() << "Canción siguiente: pendiente";
+    // Canción siguiente
+    connect(panelControles->obtenerBotonSiguiente(), &QPushButton::clicked, this, [reproducirFila, filaActual]() {
+        reproducirFila(*filaActual + 1);
     });
 
     // Control de volumen
@@ -143,6 +142,13 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
             qint64 posicion = (duracion * valor) / 1000;
             controlador->establecerPosicion(posicion);
         }
+    });
+
+    // Reproducir automáticamente la siguiente canción
+    connect(controlador->obtenerReproductor(), &QMediaPlayer::mediaStatusChanged, 
+    this, [reproducirFila, filaActual](QMediaPlayer::MediaStatus estado) {
+        if (estado == QMediaPlayer::EndOfMedia)
+            reproducirFila(*filaActual + 1);
     });
 
     // Estilos iniciales
