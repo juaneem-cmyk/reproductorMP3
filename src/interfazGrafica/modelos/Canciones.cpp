@@ -2,6 +2,7 @@
 #include "ConexionSQLite.h"
 #include "Rutas.h"
 #include "ConsultaRolas.h"
+#include "LectorMetadatos.h"
 #include <QDebug>
 
 Canciones::Canciones(QObject *parent) : QAbstractTableModel(parent) {
@@ -30,14 +31,28 @@ void Canciones::cargarCanciones() {
 
     // Transferimos los resultados al modelo de Qt
     canciones.reserve(resultados.size());
+    LectorMetadatosMP3 lector;
 
     for (const auto &cancion : resultados) {
-        canciones.push_back({
-            QString::fromStdString(cancion.titulo),
-            QString::fromStdString(cancion.artista),
-            QString::fromStdString(cancion.album),
-            cancion.year,
-            QString::fromStdString(cancion.ruta)
+    MetadatosMusicales metadatos;
+    std::string errorLectura;
+    QString duracion = "--:--";
+
+    // Intentamos leer la duración de la canción desde sus metadatos
+    if (lector.leerArchivo(cancion.ruta, metadatos, errorLectura)) {
+        unsigned int segundos = metadatos.duracionSegundos;
+        unsigned int minutos = segundos / 60;
+        segundos %= 60;
+        duracion = QString("%1:%2").arg(minutos).arg(segundos, 2, 10, QChar('0'));
+    }
+    // Agregamos la canción al vector de canciones del modelo
+    canciones.push_back({
+        QString::fromStdString(cancion.titulo),
+        QString::fromStdString(cancion.artista),
+        QString::fromStdString(cancion.album),
+        cancion.year,
+        QString::fromStdString(cancion.ruta),
+        duracion
         });
     }
 }
@@ -53,12 +68,20 @@ int Canciones::columnCount(const QModelIndex &parent) const {
     if (parent.isValid()) {
         return 0;
     }
-    return 4;
+    return 5;
 }
 
 // Se encarga de proporcionar los datos de cada celda de la tabla
 QVariant Canciones::data(const QModelIndex &indice, int rol) const {
-    if (!indice.isValid() || rol != Qt::DisplayRole) {
+    if (!indice.isValid()) {
+        return {};
+    }
+
+    if (rol == Qt::TextAlignmentRole && (indice.column() == 3 || indice.column() == 4)) {
+        return Qt::AlignCenter;
+    }
+
+    if (rol != Qt::DisplayRole) {
         return {};
     }
     const CancionVista &cancion = canciones[indice.row()];
@@ -72,6 +95,8 @@ QVariant Canciones::data(const QModelIndex &indice, int rol) const {
         return cancion.album;
         case 3:
         return cancion.year;
+        case 4:
+        return cancion.duracion;
         default:
         return {};
     }
@@ -93,6 +118,8 @@ QVariant Canciones::headerData(int seccion, Qt::Orientation orientacion, int rol
             return "Álbum";
             case 3:
             return "Año";
+            case 4:
+            return "Duración";
         }
     }
     return {};

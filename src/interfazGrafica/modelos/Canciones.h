@@ -11,6 +11,7 @@ struct CancionVista {
     QString album;
     int year;
     QString ruta;
+    QString duracion;
 };
 
 class Canciones : public QAbstractTableModel {

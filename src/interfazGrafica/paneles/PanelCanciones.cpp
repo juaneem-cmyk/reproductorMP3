@@ -28,9 +28,13 @@ PanelCanciones::PanelCanciones(QWidget *parent) : QWidget(parent) {
     tablaCanciones->verticalHeader()->setVisible(false);
 
     // Ajustar columnas
-    tablaCanciones->horizontalHeader()->setSectionResizeMode(
-        QHeaderView::Stretch
-    );
+    QHeaderView *encabezado = tablaCanciones->horizontalHeader();
+    encabezado->setSectionResizeMode(0, QHeaderView::Stretch);
+    encabezado->setSectionResizeMode(1, QHeaderView::Stretch);
+    encabezado->setSectionResizeMode(2, QHeaderView::Stretch);
+    encabezado->setSectionResizeMode(3, QHeaderView::ResizeToContents);
+    encabezado->setSectionResizeMode(4, QHeaderView::ResizeToContents);
+    encabezado->setDefaultAlignment(Qt::AlignCenter);
     tablaCanciones->verticalHeader()->setDefaultSectionSize(42);
 
     // Agregar tabla al panel
