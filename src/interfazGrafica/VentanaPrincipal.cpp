@@ -71,6 +71,11 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
             return;
         }
         *filaActual = fila;
+        // Seleccionar la canción que se está reproduciendo
+        QTableView *tabla = panelDerecho->obtenerTabla();           
+        tabla->selectRow(fila);
+        tabla->scrollTo(tabla->model()->index(fila, 0));
+        
         QString ruta = panelDerecho->obtenerRutaCancion(fila);
         controlador->cargarCancion(ruta);
         controlador->reproducir();
@@ -185,6 +190,13 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
         QWidget#panelDerecho {
         background-color: #292F23;
         border: 2px solid #503923;
+        }
+        QTableView::item:selected {
+        background-color: #5E873B;
+        color: #E6E5D7;
+        }
+        QTableView::item:hover {
+        background-color: #39452E;
         }
     )");
     // Establecer el contenedor principal como el widget central de la ventana
