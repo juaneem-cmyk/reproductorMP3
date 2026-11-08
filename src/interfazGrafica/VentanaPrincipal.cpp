@@ -10,7 +10,6 @@
 #include <QSlider>
 #include <QModelIndex>
 #include <QImage>
-#include <QDebug>
 #include <QWidget>
 #include <QLabel>
 #include <QVBoxLayout>

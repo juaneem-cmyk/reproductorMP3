@@ -426,3 +426,41 @@ FodyWeavers.xsd
 
 # Official VS Code C# Dev Kit Extension exclusion
 #*.lscache
+
+# Compilaciones de Meson / Ninja
+/build/
+/build-qt612/
+/build-*/
+
+# Archivos generados de compilación
+*.o
+*.obj
+*.a
+*.so
+*.so.*
+*.dll
+*.exe
+
+# Base de datos local SQLite
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Archivos temporales
+*.log
+*.tmp
+*~
+*.swp
+*.swo
+
+# Editores e IDE
+.idea/
+.vscode/
+.history/
+
+# Caché de Python (scripts auxiliares)
+__pycache__/
+*.pyc
