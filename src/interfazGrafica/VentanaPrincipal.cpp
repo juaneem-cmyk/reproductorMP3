@@ -28,7 +28,11 @@
 #include <filesystem>
 #include <exception>
 
-
+struct ResultadoImportacionUI {
+    bool correcto = false;
+    ResultadoMinado resultado;
+    std::string mensajeError;
+};
 
 VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     setWindowTitle("Reproductor");
@@ -68,6 +72,53 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     // Conectar la barra de búsqueda con el filtro de canciones
     connect(barraHerramientas->obtenerBarraBusqueda(), &QLineEdit::textChanged,
         panelDerecho, &PanelCanciones::establecerTextoBusqueda
+    );
+
+    // Importar música desde un directorio
+    QToolButton *botonImportar = barraHerramientas->obtenerBotonImportarMusica();
+    connect(botonImportar, &QToolButton::clicked, this, [this, botonImportar, panelDerecho]() {
+
+            // Seleccionar el directorio que contiene la música
+            QString directorio = QFileDialog::getExistingDirectory(this, "Seleccionar carpeta de música", QDir::homePath());
+
+            if (directorio.isEmpty()) {
+                return;
+            }
+
+            // Convertir la ruta de Qt a filesystem
+            const QByteArray rutaUTF8 = directorio.toUtf8();
+            const std::filesystem::path ruta = std::filesystem::u8path(rutaUTF8.constData());
+
+            // Evitar que se inicie otra importación simultáneamente
+            botonImportar->setEnabled(false);
+            botonImportar->setToolTip("Importando música...");
+
+            // Observar el trabajo en segundo plano
+            auto *observador = new QFutureWatcher<ResultadoImportacionUI>(this);
+            connect(observador, &QFutureWatcher<ResultadoImportacionUI>::finished, 
+                this, [this, observador, panelDerecho, botonImportar]() {
+                    ResultadoImportacionUI salida = observador->result();
+                    observador->deleteLater();
+                    botonImportar->setEnabled(true);
+                    botonImportar->setToolTip("Importar música");
+
+                    // Mostrar un error si no se pudo completar la importación
+                    if (!salida.correcto) {
+                        QMessageBox::critical(this, "Error de importación", QString::fromStdString(salida.mensajeError));
+                        return;
+                    }
+
+                    // Actualizar la biblioteca visible
+                    panelDerecho->recargarCanciones();
+                    const ResultadoMinado& r = salida.resultado;
+
+                    if (r.archivosEncontrados == 0) {
+                        QMessageBox::information(this, "Importación finalizada",
+                            "No se encontraron archivos MP3 en el directorio seleccionado."
+                        );
+                        return;
+                    }
+        }
     );
 
     // Controles inferiores
