@@ -61,12 +61,12 @@ BarraHerramientas::BarraHerramientas(QWidget *parent) : QWidget(parent) {
     barraBusqueda->setMinimumHeight(34);
 
     // Distribución de los elementos
+    layout->addWidget(botonImportarMusica);
     layout->addWidget(botonEditarCancion);
     layout->addWidget(botonEditarInterprete);
     layout->addWidget(barraBusqueda, 1);
     layout->addWidget(botonLista);
     layout->addWidget(botonGaleria);
-    layout->addWidget(botonImportarMusica);
     // Estilos
     setStyleSheet(R"(
         QWidget#barraHerramientas {

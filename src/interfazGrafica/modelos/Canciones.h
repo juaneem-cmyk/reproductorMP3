@@ -24,6 +24,7 @@ public:
     enum Roles {
     TextoBusquedaRole = Qt::UserRole + 1
     };
+    void recargar();
 
     QVariant data(const QModelIndex &indice, int rol = Qt::DisplayRole) const override;
     QVariant headerData(int seccion, Qt::Orientation orientacion, int rol = Qt::DisplayRole) const override;

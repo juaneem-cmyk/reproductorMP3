@@ -87,3 +87,7 @@ QString PanelCanciones::obtenerRutaCancion(int fila) const {
 void PanelCanciones::establecerTextoBusqueda(const QString &texto) {
     filtroCanciones->setFilterFixedString(texto.trimmed());
 }
+
+void PanelCanciones::recargarCanciones() {
+    modeloCanciones->recargar();
+}

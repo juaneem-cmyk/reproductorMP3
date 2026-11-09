@@ -9,8 +9,10 @@ executable('reproductor', 'main.cpp', 'VentanaPrincipal.cpp',
     'paneles/PanelControles.cpp', 'paneles/BarraHerra.cpp',
     'ventanas/VentanaEdicion.cpp',
     'reproduccion/ControladoRep.cpp',
-    # Lector de metadatos
-    '../minero/LectorMetadatos.cpp',
+
+    # Lector de metadatos e importación
+    '../minero/LectorMetadatos.cpp', '../minero/ImportarMusica.cpp',
+    '../minero/ExplorarDirectorios.cpp',
 
     # Base de datos
     '../baseDatos/CrearBD.cpp', '../baseDatos/ConexionSQLite.cpp',

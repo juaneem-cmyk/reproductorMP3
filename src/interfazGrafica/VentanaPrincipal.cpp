@@ -118,6 +118,46 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
                         );
                         return;
                     }
+
+                    // Construir el resumen
+                    QString resumen = QString(
+                        "Archivos encontrados: %1\n"
+                        "Archivos procesados: %2\n"
+                        "Canciones nuevas: %3\n"
+                        "Canciones existentes: %4\n"
+                        "Archivos omitidos: %5\n"
+                        "Errores de registro: %6"
+                    )
+                    .arg(static_cast<qulonglong>(r.archivosEncontrados))
+                    .arg(static_cast<qulonglong>(r.archivosProcesados))
+                    .arg(static_cast<qulonglong>(r.cancionesInsertadas))
+                    .arg(static_cast<qulonglong>(r.cancionesExistentes))
+                    .arg(static_cast<qulonglong>(r.archivosOmitidos))
+                    .arg(static_cast<qulonglong>(r.erroresRegistro));
+
+                    // Mostrar el resultado
+                    if (r.erroresRegistro > 0 || r.archivosOmitidos > 0) {
+                        QMessageBox::warning(this, "Importación finalizada con observaciones", resumen);
+                    } else {
+                        QMessageBox::information(this, "Importación completada", resumen);
+                    }
+                }
+            );
+
+            // Ejecutar el importador fuera del hilo de la interfaz
+            observador->setFuture(QtConcurrent::run([ruta]() {
+                ResultadoImportacionUI salida;
+                ImportarMusica importador;
+
+                try {
+                    salida.correcto = importador.importar(ruta, salida.resultado, salida.mensajeError);
+                    } catch (const std::exception& error) {
+                        salida.correcto = false;
+                        salida.mensajeError = error.what();
+                    }
+                    return salida;
+                })
+            );
         }
     );
 
