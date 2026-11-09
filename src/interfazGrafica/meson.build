@@ -6,7 +6,7 @@ executable('reproductor', 'main.cpp', 'VentanaPrincipal.cpp',
     'componentes/Portada.cpp',
     'modelos/Canciones.cpp', 
     'paneles/PanelAlbum.cpp', 'paneles/PanelCanciones.cpp',
-    'paneles/PanelControles.cpp',
+    'paneles/PanelControles.cpp', 'paneles/BarraHerra.cpp',
     'ventanas/VentanaEdicion.cpp',
     'reproduccion/ControladoRep.cpp',
     # Lector de metadatos

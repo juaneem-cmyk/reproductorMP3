@@ -62,4 +62,58 @@ BarraHerramientas::BarraHerramientas(QWidget *parent) : QWidget(parent) {
     layout->addWidget(botonLista);
     layout->addWidget(botonGaleria);
 
+    // Estilos
+    setStyleSheet(R"(
+        QWidget#barraHerramientas {
+            background-color: #303B27;
+            border-bottom: 2px solid #503923;
+        }
+        QToolButton {
+            background-color: #5E873B;
+            color: #E6E5D7;
+            border: 1px solid #805638;
+            border-radius: 5px;
+            font-size: 17px;
+            font-weight: bold;
+        }
+        QToolButton:hover {
+            background-color: #86A94F;
+        }
+        QToolButton:checked {
+            background-color: #805638;
+            border: 1px solid #E6E5D7;
+        }
+        QLineEdit {
+            background-color: #20251B;
+            color: #E6E5D7;
+            border: 1px solid #805638;
+            border-radius: 5px;
+            padding-left: 9px;
+            font-size: 13px;
+        }
+        QLineEdit:focus {
+            border: 1px solid #86A94F;
+        }
+    )");
+}
+
+// Obtener controles
+QToolButton *BarraHerramientas::obtenerBotonEditarCancion() const {
+    return botonEditarCancion;
+}
+
+QToolButton *BarraHerramientas::obtenerBotonEditarInterprete() const {
+    return botonEditarInterprete;
+}
+
+QLineEdit *BarraHerramientas::obtenerBarraBusqueda() const {
+    return barraBusqueda;
+}
+
+QToolButton *BarraHerramientas::obtenerBotonLista() const {
+    return botonLista;
+}
+
+QToolButton *BarraHerramientas::obtenerBotonGaleria() const {
+    return botonGaleria;
 }
