@@ -15,6 +15,7 @@ public:
     QLineEdit *obtenerBarraBusqueda() const;
     QToolButton *obtenerBotonLista() const;
     QToolButton *obtenerBotonGaleria() const;
+    QToolButton *obtenerBotonImportarMusica() const;
 
 private:
     QToolButton *botonEditarCancion;
@@ -22,5 +23,6 @@ private:
     QLineEdit *barraBusqueda;
     QToolButton *botonLista;
     QToolButton *botonGaleria;
+    QToolButton *botonImportarMusica;
 };
 #endif

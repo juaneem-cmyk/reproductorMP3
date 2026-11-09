@@ -22,6 +22,11 @@ BarraHerramientas::BarraHerramientas(QWidget *parent) : QWidget(parent) {
     botonEditarInterprete->setText("♙");
     botonEditarInterprete->setToolTip("Editar artista o grupo");
 
+    // Botón para importar música
+    botonImportarMusica = new QToolButton(this);
+    botonImportarMusica->setText("+");
+    botonImportarMusica->setToolTip("Importar música");
+
     // Barra de búsqueda
     barraBusqueda = new QLineEdit(this);
     barraBusqueda->setPlaceholderText("Buscar canciones, artistas o álbumes...");
@@ -47,7 +52,7 @@ BarraHerramientas::BarraHerramientas(QWidget *parent) : QWidget(parent) {
     botonLista->setChecked(true);
 
     // Configuración de botones
-    QToolButton *botones[] = {botonEditarCancion, botonEditarInterprete, botonLista, botonGaleria};
+    QToolButton *botones[] = {botonEditarCancion, botonEditarInterprete, botonLista, botonGaleria, botonImportarMusica};
 
     for (QToolButton *boton : botones) {
         boton->setFixedSize(34, 34);
@@ -61,7 +66,7 @@ BarraHerramientas::BarraHerramientas(QWidget *parent) : QWidget(parent) {
     layout->addWidget(barraBusqueda, 1);
     layout->addWidget(botonLista);
     layout->addWidget(botonGaleria);
-
+    layout->addWidget(botonImportarMusica);
     // Estilos
     setStyleSheet(R"(
         QWidget#barraHerramientas {
@@ -116,4 +121,8 @@ QToolButton *BarraHerramientas::obtenerBotonLista() const {
 
 QToolButton *BarraHerramientas::obtenerBotonGaleria() const {
     return botonGaleria;
+}
+
+QToolButton *BarraHerramientas::obtenerBotonImportarMusica() const {
+    return botonImportarMusica;
 }

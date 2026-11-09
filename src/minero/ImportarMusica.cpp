@@ -69,4 +69,67 @@ bool ImportarMusica::importar(const std::filesystem::path& ruta, ResultadoMinado
         return false;
     }
 
+    // Abrir SQLite
+    ConexionSQLite conexion;
+
+    if (!conexion.abrir(rutaBaseDatos.string(), mensajeError)) {
+        return false;
+    }
+
+    // Activar las claves foráneas
+    if (!conexion.ejecutarSQL("PRAGMA foreign_keys = ON;", mensajeError)) {
+        return false;
+    }
+    RepositorioMusical repositorio(conexion);
+    LectorMetadatosMP3 lector;
+
+    // Procesar los archivos encontrados
+    for (const auto& rutaArchivo : archivosMP3) {
+        std::error_code errorRuta;
+        const fs::path rutaNormalizada = fs::absolute(rutaArchivo, errorRuta).lexically_normal();
+
+        if (errorRuta) {
+            ++resultado.archivosOmitidos;
+            continue;
+        }
+
+        // Comprobar si la canción ya está registrada
+        bool yaRegistrada = false;
+        std::string errorConsulta;
+
+        if (!repositorio.existeCancionPorRuta(rutaNormalizada.string(), yaRegistrada, errorConsulta)) {
+            ++resultado.erroresRegistro;
+            continue;
+        }
+
+        if (yaRegistrada) {
+            ++resultado.archivosProcesados;
+            ++resultado.cancionesExistentes;
+            continue;
+        }
+
+        // Leer los metadatos del MP3
+        MetadatosMusicales metadatos;
+        std::string errorLectura;
+
+        if (!lector.leerArchivo(rutaArchivo.string(), metadatos, errorLectura)) {
+            ++resultado.archivosOmitidos;
+            continue;
+        }
+
+        // Registrar la canción en SQLite
+        bool insertada = false;
+        std::string errorRegistro;
+
+        if (!repositorio.registrarCancion(rutaNormalizada.string(), metadatos,
+            insertada, errorRegistro)) {
+            ++resultado.erroresRegistro;
+        } else if (insertada) {
+            ++resultado.cancionesInsertadas;
+        } else {
+            ++resultado.cancionesExistentes;
+        }
+        ++resultado.archivosProcesados;
+    }
+    return true;
 }

@@ -3,9 +3,16 @@
 #include "paneles/PanelAlbum.h"
 #include "paneles/PanelCanciones.h"
 #include "paneles/PanelControles.h"
+#include "paneles/BarraHerra.h"
 #include "reproduccion/ControladoRep.h"
 #include "../minero/LectorMetadatos.h"
-#include "paneles/BarraHerra.h"
+#include "../minero/ImportarMusica.h"
+#include <QFileDialog>
+#include <QMessageBox>
+#include <QToolButton>
+#include <QFutureWatcher>
+#include <QtConcurrent/QtConcurrentRun>
+#include <QDir>
 #include <QMediaPlayer>
 #include <QPushButton>
 #include <QSlider>
@@ -18,6 +25,10 @@
 #include <QLineEdit>
 #include <Qt>
 #include <memory>
+#include <filesystem>
+#include <exception>
+
+
 
 VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     setWindowTitle("Reproductor");
