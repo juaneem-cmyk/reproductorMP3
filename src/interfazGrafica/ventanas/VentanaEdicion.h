@@ -1,5 +1,5 @@
-#ifndef BOTON_EDICION_H
-#define BOTON_EDICION_H
+#ifndef VENTANA_EDICION_H
+#define VENTANA_EDICION_H
 
 #include <QDialog>
 #include <QString>
@@ -7,9 +7,9 @@
 struct CancionVista;
 class QLineEdit;
 
-class BotonEdit : public QDialog {
+class VentanaEdit : public QDialog {
 public:
-    explicit BotonEdit(const CancionVista& cancion, QWidget *parent = nullptr);
+    explicit VentanaEdit(const CancionVista& cancion, QWidget *parent = nullptr);
 
     QString obtenerTitulo() const;
     QString obtenerArtista() const;

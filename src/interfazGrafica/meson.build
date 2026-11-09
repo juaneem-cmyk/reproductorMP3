@@ -4,11 +4,11 @@ qt6_multimedia = dependency('qt6', modules: ['Multimedia'])
 executable('reproductor', 'main.cpp', 'VentanaPrincipal.cpp',
     # Componentes visuales
     'componentes/Portada.cpp',
-    'modelos/Canciones.cpp', 'modelos/BotonEdicion.cpp',
+    'modelos/Canciones.cpp', 
     'paneles/PanelAlbum.cpp', 'paneles/PanelCanciones.cpp',
     'paneles/PanelControles.cpp',
+    'ventanas/VentanaEdicion.cpp',
     'reproduccion/ControladoRep.cpp',
-
     # Lector de metadatos
     '../minero/LectorMetadatos.cpp',
 

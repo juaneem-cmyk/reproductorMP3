@@ -1,4 +1,4 @@
-#include "BotonEdicion.h"
+#include "../ventanas/VentanaEdicion.h"
 #include "../modelos/Canciones.h"
 #include <QLineEdit>
 #include <QLabel>
@@ -8,7 +8,7 @@
 #include <QPushButton>
 #include <QMessageBox>
 
-BotonEdit::BotonEdit(const CancionVista& cancion, QWidget *parent) : QDialog(parent) {
+VentanaEdit::VentanaEdit(const CancionVista& cancion, QWidget *parent) : QDialog(parent) {
     setWindowTitle("Editar canción");
     setMinimumWidth(400);
     setModal(true);
@@ -46,7 +46,7 @@ BotonEdit::BotonEdit(const CancionVista& cancion, QWidget *parent) : QDialog(par
     layoutPrincipal->addWidget(informacion);
     layoutPrincipal->addWidget(botones);
 
-    connect(guardar, &QPushButton::clicked, this, &BotonEdit::guardarCambios);
+    connect(guardar, &QPushButton::clicked, this, &VentanaEdit::guardarCambios);
     connect(cancelar, &QPushButton::clicked, this, &QDialog::reject);
 
     // Estilos
@@ -78,7 +78,7 @@ BotonEdit::BotonEdit(const CancionVista& cancion, QWidget *parent) : QDialog(par
     )");
 }
 
-void BotonEdit::guardarCambios() {
+void VentanaEdit::guardarCambios() {
     if (campoTitulo->text().trimmed().isEmpty()) {
         QMessageBox::warning(this,
             "Dato inválido",
@@ -90,14 +90,14 @@ void BotonEdit::guardarCambios() {
     accept();
 }
 
-QString BotonEdit::obtenerTitulo() const {
+QString VentanaEdit::obtenerTitulo() const {
     return campoTitulo->text().trimmed();
 }
 
-QString BotonEdit::obtenerArtista() const {
+QString VentanaEdit::obtenerArtista() const {
     return campoArtista->text().trimmed();
 }
 
-QString BotonEdit::obtenerAlbum() const {
+QString VentanaEdit::obtenerAlbum() const {
     return campoAlbum->text().trimmed();
 }
