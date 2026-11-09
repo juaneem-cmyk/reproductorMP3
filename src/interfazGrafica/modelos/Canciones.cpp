@@ -34,25 +34,26 @@ void Canciones::cargarCanciones() {
     LectorMetadatosMP3 lector;
 
     for (const auto &cancion : resultados) {
-    MetadatosMusicales metadatos;
-    std::string errorLectura;
-    QString duracion = "--:--";
+        MetadatosMusicales metadatos;
+        std::string errorLectura;
+        QString duracion = "--:--";
 
-    // Intentamos leer la duración de la canción desde sus metadatos
-    if (lector.leerArchivo(cancion.ruta, metadatos, errorLectura)) {
-        unsigned int segundos = metadatos.duracionSegundos;
-        unsigned int minutos = segundos / 60;
-        segundos %= 60;
-        duracion = QString("%1:%2").arg(minutos).arg(segundos, 2, 10, QChar('0'));
-    }
-    // Agregamos la canción al vector de canciones del modelo
-    canciones.push_back({
-        QString::fromStdString(cancion.titulo),
-        QString::fromStdString(cancion.artista),
-        QString::fromStdString(cancion.album),
-        cancion.year,
-        QString::fromStdString(cancion.ruta),
-        duracion
+        // Intentamos leer la duración de la canción desde sus metadatos
+        if (lector.leerArchivo(cancion.ruta, metadatos, errorLectura)) {
+            unsigned int segundos = metadatos.duracionSegundos;
+            unsigned int minutos = segundos / 60;
+            segundos %= 60;
+            duracion = QString("%1:%2").arg(minutos).arg(segundos, 2, 10, QChar('0'));
+        }
+        // Agregamos la canción al vector de canciones del modelo
+        canciones.push_back({
+            cancion.idRola,
+            QString::fromStdString(cancion.titulo),
+            QString::fromStdString(cancion.artista),
+            QString::fromStdString(cancion.album),
+            cancion.year,
+            QString::fromStdString(cancion.ruta),
+            duracion
         });
     }
 }
@@ -130,4 +131,13 @@ QString Canciones::rutaEnFila(int fila) const {
         return {};
     }
     return canciones[fila].ruta;
+}
+
+bool Canciones::obtenerCancion(int fila, CancionVista &cancion) const {
+    if (fila < 0 || fila >= static_cast<int>(canciones.size())) {
+        return false;
+    }
+
+    cancion = canciones[fila];
+    return true;
 }
