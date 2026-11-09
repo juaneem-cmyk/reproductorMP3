@@ -112,6 +112,85 @@ bool EdicionCanciones::actualizarCancion(int idRola, const std::string& titulo, 
         return false;
     }
 
+    // Reutilizar las operaciones existentes para intérpretes y álbumes
+    RepositorioMusical repositorio(conexion);
+    int idInterprete = idInterpreteActual;
+
+    // Si cambió el artista, buscarlo o registrarlo
+    if (artista != artistaActual || idInterprete <= 0) {
+        if (!repositorio.obtenerOCrearInterprete(artista, idInterprete, mensajeError)) {
+            cancelarTransaccion();
+            return false;
+        }
+    }
+    int idAlbum = idAlbumActual;
+    bool tieneAlbum = tieneAlbumActual;
+
+    // Si cambió el álbum, buscar su directorio correspondiente
+    if (album != albumActual) {
+        if (!repositorio.obtenerOCrearAlbum(ruta, album, static_cast<unsigned int>(anio),
+            idAlbum, tieneAlbum, mensajeError)) {
+            cancelarTransaccion();
+            return false;
+        }
+    }
+
+    // Actualizar únicamente la canción seleccionada
+    {
+        const char* actualizacion =
+            "UPDATE rolas "
+            "SET id_performer = ?, id_album = ?, title = ? "
+            "WHERE id_rola = ?;";
+        sqlite3_stmt* temporal = nullptr;
+
+        int codigo = sqlite3_prepare_v2(baseDatos, actualizacion, -1, &temporal, nullptr);
+
+        if (codigo != SQLITE_OK) {
+            mensajeError = sqlite3_errmsg(baseDatos);
+
+            if (temporal != nullptr) {
+                sqlite3_finalize(temporal);
+            }
+        } else {
+            std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize) > sentencia(temporal, &sqlite3_finalize);
+            codigo = sqlite3_bind_int(sentencia.get(), 1, idInterprete);
+
+            if (codigo == SQLITE_OK) {
+                if (tieneAlbum) {
+                    codigo = sqlite3_bind_int(sentencia.get(), 2, idAlbum);
+                } else {
+                    codigo = sqlite3_bind_null(sentencia.get(), 2);
+                }
+            }
+
+            if (codigo == SQLITE_OK) {
+                codigo = sqlite3_bind_text(sentencia.get(), 3, titulo.c_str(), -1, SQLITE_TRANSIENT);
+            }
+
+            if (codigo == SQLITE_OK) {
+                codigo = sqlite3_bind_int(sentencia.get(), 4, idRola);
+            }
+
+            if (codigo == SQLITE_OK) {
+                codigo = sqlite3_step(sentencia.get());
+            }
+
+            if (codigo != SQLITE_DONE) {
+                mensajeError = sqlite3_errmsg(baseDatos);
+            }
+        }
+    }
+
+    if (!mensajeError.empty()) {
+        cancelarTransaccion();
+        return false;
+    }
+
+    // Confirmar los cambios
+    if (!conexion.ejecutarSQL("COMMIT;", mensajeError)) {
+        cancelarTransaccion();
+        return false;
+    }
     mensajeError.clear();
     return true;
 }
