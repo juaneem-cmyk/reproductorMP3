@@ -3,6 +3,7 @@
 #include <QVBoxLayout>
 #include <QTableView>
 #include <QHeaderView>
+#include <QSortFilterProxyModel>
 
 PanelCanciones::PanelCanciones(QWidget *parent) : QWidget(parent) {
     setObjectName("panelDerecho");
@@ -15,9 +16,16 @@ PanelCanciones::PanelCanciones(QWidget *parent) : QWidget(parent) {
     // Crear el modelo
     modeloCanciones = new Canciones(this);
 
+    // Crear el filtro
+    filtroCanciones = new QSortFilterProxyModel(this);
+    filtroCanciones->setSourceModel(modeloCanciones);
+    filtroCanciones->setFilterRole(Canciones::TextoBusquedaRole);
+    filtroCanciones->setFilterKeyColumn(0);
+    filtroCanciones->setFilterCaseSensitivity(Qt::CaseInsensitive);
+
     // Crear la tabla
     tablaCanciones = new QTableView(this);
-    tablaCanciones->setModel(modeloCanciones);
+    tablaCanciones->setModel(filtroCanciones);
 
     // Configuración de la tabla
     tablaCanciones->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -67,5 +75,15 @@ QTableView *PanelCanciones::obtenerTabla() const {
 }
 
 QString PanelCanciones::obtenerRutaCancion(int fila) const {
-    return modeloCanciones->rutaEnFila(fila);
+    QModelIndex indiceProxy = filtroCanciones->index(fila, 0);
+
+    if (!indiceProxy.isValid()) {
+        return {};
+    }
+    QModelIndex indiceOriginal = filtroCanciones->mapToSource(indiceProxy);
+    return modeloCanciones->rutaEnFila(indiceOriginal.row());
+}
+
+void PanelCanciones::establecerTextoBusqueda(const QString &texto) {
+    filtroCanciones->setFilterFixedString(texto.trimmed());
 }

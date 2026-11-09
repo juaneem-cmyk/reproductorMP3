@@ -6,16 +6,19 @@
 
 class QTableView;
 class Canciones;
+class QSortFilterProxyModel;
 
 class PanelCanciones : public QWidget {
 public:
     explicit PanelCanciones(QWidget *parent = nullptr);
+    void establecerTextoBusqueda(const QString &texto);
     
     QTableView *obtenerTabla() const;
     QString obtenerRutaCancion(int fila) const;
 
 private:
     QTableView *tablaCanciones;
+    QSortFilterProxyModel *filtroCanciones;
     Canciones *modeloCanciones;
 };
 #endif

@@ -15,6 +15,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QTableView>
+#include <QLineEdit>
 #include <Qt>
 #include <memory>
 
@@ -52,6 +53,11 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     // Agregar los elementos al contenedor principal
     layout->addWidget(barraHerramientas);
     layout->addWidget(areaTrabajo, 1);
+
+    // Conectar la barra de búsqueda con el filtro de canciones
+    connect(barraHerramientas->obtenerBarraBusqueda(), &QLineEdit::textChanged,
+        panelDerecho, &PanelCanciones::establecerTextoBusqueda
+    );
 
     // Controles inferiores
     PanelControles *panelControles = new PanelControles(contenedor);
