@@ -43,6 +43,75 @@ bool EdicionCanciones::actualizarCancion(int idRola, const std::string& titulo, 
     std::string artistaActual;
     std::string albumActual;
 
+    // Consultar los datos actuales de la canción
+    {
+        const char* consulta =
+            "SELECT r.id_performer, r.id_album, r.path, r.year, "
+            "COALESCE(p.name, ''), COALESCE(a.name, '') "
+            "FROM rolas AS r "
+            "LEFT JOIN performers AS p "
+            "ON r.id_performer = p.id_performer "
+            "LEFT JOIN albums AS a "
+            "ON r.id_album = a.id_album "
+            "WHERE r.id_rola = ?;";
+
+        sqlite3_stmt* temporal = nullptr;
+        int codigo = sqlite3_prepare_v2(
+            baseDatos, consulta, -1, &temporal, nullptr
+        );
+
+        if (codigo != SQLITE_OK) {
+            mensajeError = sqlite3_errmsg(baseDatos);
+
+            if (temporal != nullptr) {
+                sqlite3_finalize(temporal);
+            }
+        } else {
+            std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize) > sentencia(temporal, &sqlite3_finalize);
+            codigo = sqlite3_bind_int(sentencia.get(), 1, idRola);
+
+            if (codigo != SQLITE_OK) {
+                mensajeError = sqlite3_errmsg(baseDatos);
+            } else {
+                codigo = sqlite3_step(sentencia.get());
+
+                if (codigo == SQLITE_ROW) {
+                    idInterpreteActual = sqlite3_column_int(sentencia.get(), 0);
+                    tieneAlbumActual = sqlite3_column_type(sentencia.get(), 1) != SQLITE_NULL;
+
+                    if (tieneAlbumActual) {
+                        idAlbumActual = sqlite3_column_int(sentencia.get(), 1);
+                    }
+
+                    auto obtenerTexto = [&sentencia](int columna) {
+                        const unsigned char* texto = sqlite3_column_text(sentencia.get(), columna);
+                        return texto == nullptr ? std::string() : std::string(reinterpret_cast<const char*>(texto));
+                    };
+
+                    ruta = obtenerTexto(2);
+                    anio = sqlite3_column_int(sentencia.get(), 3);
+                    artistaActual = obtenerTexto(4);
+                    albumActual = obtenerTexto(5);
+                    encontrada = true;
+                } else if (codigo == SQLITE_DONE) {
+                    mensajeError = "No existe una canción con ese identificador.";
+                } else {
+                    mensajeError = sqlite3_errmsg(baseDatos);
+                }
+            }
+        }
+    }
+
+    if (!mensajeError.empty()) {
+        cancelarTransaccion();
+        return false;
+    }
+
+    if (!encontrada) {
+        cancelarTransaccion();
+        return false;
+    }
+
     mensajeError.clear();
     return true;
 }
