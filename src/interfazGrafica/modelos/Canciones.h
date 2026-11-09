@@ -20,12 +20,17 @@ public:
     explicit Canciones(QObject *parent = nullptr);
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
+    bool obtenerCancion(int fila, CancionVista &cancion) const;
+    enum Roles {
+    TextoBusquedaRole = Qt::UserRole + 1
+    };
+
     QVariant data(const QModelIndex &indice, int rol = Qt::DisplayRole) const override;
     QVariant headerData(int seccion, Qt::Orientation orientacion, int rol = Qt::DisplayRole) const override;
     QString rutaEnFila(int fila) const;
-    bool obtenerCancion(int fila, CancionVista &cancion) const;
 
-private:    std::vector<CancionVista> canciones;
+private:    
+    std::vector<CancionVista> canciones;
 
     void cargarCanciones();
 };

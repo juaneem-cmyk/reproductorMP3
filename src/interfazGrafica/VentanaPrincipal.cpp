@@ -5,13 +5,13 @@
 #include "paneles/PanelControles.h"
 #include "reproduccion/ControladoRep.h"
 #include "../minero/LectorMetadatos.h"
+#include "paneles/BarraHerra.h"
 #include <QMediaPlayer>
 #include <QPushButton>
 #include <QSlider>
 #include <QModelIndex>
 #include <QImage>
 #include <QWidget>
-#include <QLabel>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QTableView>
@@ -29,11 +29,8 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
 
-    // Encabezado
-    QLabel *encabezado = new QLabel("Reproductor", contenedor);
-    encabezado->setObjectName("encabezado");
-    encabezado->setMinimumHeight(60);
-    encabezado->setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
+    // Barra de herramientas superior
+    BarraHerramientas *barraHerramientas = new BarraHerramientas(contenedor);
 
     // Reproductor
     QWidget *areaTrabajo = new QWidget(contenedor);
@@ -53,7 +50,7 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     layoutPrincipal->addWidget(panelDerecho, 3);
 
     // Agregar los elementos al contenedor principal
-    layout->addWidget(encabezado);
+    layout->addWidget(barraHerramientas);
     layout->addWidget(areaTrabajo, 1);
 
     // Controles inferiores
@@ -162,14 +159,6 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
         }
         QWidget#contenedorPrincipal {
             background-color: #20251B;
-        }
-        QLabel#encabezado {
-            background-color: #303B27;
-            color: #E6E5D7;
-            border-bottom: 3px solid #503923;
-            font-size: 18px;
-            font-weight: bold;
-            padding-left: 20px;
         }
         QWidget#panelIzquierdo {
         background-color: #303B27;

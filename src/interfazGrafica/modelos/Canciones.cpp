@@ -78,6 +78,13 @@ QVariant Canciones::data(const QModelIndex &indice, int rol) const {
         return {};
     }
 
+    const CancionVista &cancion = canciones[indice.row()];
+
+    // Texto combinado para las búsquedas
+    if (rol == TextoBusquedaRole) {
+        return QString("%1 %2 %3").arg(cancion.titulo, cancion.artista, cancion.album);
+    }
+
     if (rol == Qt::TextAlignmentRole && (indice.column() == 3 || indice.column() == 4)) {
         return Qt::AlignCenter;
     }
@@ -85,7 +92,6 @@ QVariant Canciones::data(const QModelIndex &indice, int rol) const {
     if (rol != Qt::DisplayRole) {
         return {};
     }
-    const CancionVista &cancion = canciones[indice.row()];
 
     switch (indice.column()) {
         case 0:
