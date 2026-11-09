@@ -49,4 +49,55 @@ BotonEdit::BotonEdit(const CancionVista& cancion, QWidget *parent) : QDialog(par
     connect(guardar, &QPushButton::clicked, this, &BotonEdit::guardarCambios);
     connect(cancelar, &QPushButton::clicked, this, &QDialog::reject);
 
+    // Estilos
+    setStyleSheet(R"(
+        QDialog {
+            background-color: #20251B;
+            color: #E6E5D7;
+        }
+        QLabel {
+            color: #E6E5D7;
+        }
+        QLineEdit {
+            background-color: #303B27;
+            color: #E6E5D7;
+            border: 1px solid #805638;
+            border-radius: 4px;
+            padding: 7px;
+        }
+        QPushButton {
+            background-color: #5E873B;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+        }
+        QPushButton:hover {
+            background-color: #86A94F;
+        }
+    )");
+}
+
+void BotonEdit::guardarCambios() {
+    if (campoTitulo->text().trimmed().isEmpty()) {
+        QMessageBox::warning(this,
+            "Dato inválido",
+            "El título de la canción no puede estar vacío."
+        );
+        campoTitulo->setFocus();
+        return;
+    }
+    accept();
+}
+
+QString BotonEdit::obtenerTitulo() const {
+    return campoTitulo->text().trimmed();
+}
+
+QString BotonEdit::obtenerArtista() const {
+    return campoArtista->text().trimmed();
+}
+
+QString BotonEdit::obtenerAlbum() const {
+    return campoAlbum->text().trimmed();
 }
