@@ -4,7 +4,7 @@ qt6_multimedia = dependency('qt6', modules: ['Multimedia'])
 executable('reproductor', 'main.cpp', 'VentanaPrincipal.cpp',
     # Componentes visuales
     'componentes/Portada.cpp',
-    'modelos/Canciones.cpp',
+    'modelos/Canciones.cpp', 'modelos/BotonEdicion.cpp',
     'paneles/PanelAlbum.cpp', 'paneles/PanelCanciones.cpp',
     'paneles/PanelControles.cpp',
     'reproduccion/ControladoRep.cpp',
@@ -15,7 +15,7 @@ executable('reproductor', 'main.cpp', 'VentanaPrincipal.cpp',
     # Base de datos
     '../baseDatos/CrearBD.cpp', '../baseDatos/ConexionSQLite.cpp',
     '../baseDatos/InicializarBD.cpp', '../baseDatos/Rutas.cpp',
-    '../baseDatos/Biblioteca.cpp',
+    '../baseDatos/Biblioteca.cpp', '../baseDatos/repositorio/EdicionCanciones.cpp',
 
     # Repositorio
     '../baseDatos/repositorio/ConsultaRolas.cpp',
