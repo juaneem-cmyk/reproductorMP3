@@ -3,13 +3,14 @@
 #include "../paneles/PanelCanciones.h"
 #include "../modelos/Canciones.h"
 #include "../ventanas/VentanaInterp.h"
+#include "../servicios/GestorImagenes.h"
 #include "ConexionSQLite.h"
 #include "Rutas.h"
 #include <QMessageBox>
 #include <QToolButton>
 #include <QWidget>
 
-ControladorEditInterp::ControladorEditInterp(QToolButton *botonEditarInterprete, PanelCanciones *panelCanciones, 
+ControladorEditInterp::ControladorEditInterp(QToolButton *botonEditarInterprete, PanelCanciones *panelCanciones,
     QWidget *ventanaPadre) : QObject(ventanaPadre), panelCanciones(panelCanciones), ventanaPadre(ventanaPadre) {
     connect(botonEditarInterprete, &QToolButton::clicked, this, [this]() {
         editarInterprete();
@@ -29,7 +30,7 @@ void ControladorEditInterp::editarInterprete() {
         return;
     }
 
-    // Abrir la ventana con los datos actuales
+    // Abrir la ventana con los datos actuales y la imagen del intérprete
     VentanaInterprete ventana(cancion, ventanaPadre);
 
     if (ventana.exec() != QDialog::Accepted) {
@@ -68,8 +69,26 @@ void ControladorEditInterp::editarInterprete() {
         return;
     }
 
+    // Guardar o restaurar la imagen personalizada, si el usuario lo solicitó
+    QString errorImagen;
+    bool imagenActualizada = true;
+
+    if (!ventana.obtenerRutaImagenSeleccionada().isEmpty()) {
+        imagenActualizada = GestorImagenes::guardarInterprete(cancion.idInterprete, 
+        ventana.obtenerRutaImagenSeleccionada(), errorImagen);
+    } else if (ventana.debeEliminarImagenPersonalizada()) {
+        imagenActualizada = GestorImagenes::eliminarInterprete(cancion.idInterprete, errorImagen);
+    }
+
     // Actualizar la tabla
     panelCanciones->recargarCanciones();
+
+    if (!imagenActualizada) {
+        QMessageBox::warning(ventanaPadre, "Intérprete actualizado",
+            "Los datos del intérprete se guardaron, pero no se pudo actualizar su imagen:\n" + errorImagen);
+        return;
+    }
+
     QMessageBox::information(ventanaPadre, "Intérprete actualizado",
         "Los cambios se guardaron correctamente.");
 }
