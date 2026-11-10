@@ -2,19 +2,29 @@
 #include "controladores/ContEditCanciones.h"
 #include "controladores/ContEditInterp.h"
 #include "controladores/ContImport.h"
-#include "controladores/ContRepro.h"
+#include "servicios/GestorImagenes.h"
+#include "modelos/Canciones.h"
+#include "componentes/Portada.h"
 #include "paneles/PanelAlbum.h"
 #include "paneles/PanelCanciones.h"
 #include "paneles/PanelControles.h"
 #include "paneles/BarraHerra.h"
+#include "reproduccion/ControladoRep.h"
+#include "../minero/LectorMetadatos.h"
 #include <QItemSelectionModel>
 #include <QToolButton>
+#include <QMediaPlayer>
+#include <QPushButton>
+#include <QSlider>
+#include <QModelIndex>
+#include <QImage>
 #include <QWidget>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QTableView>
 #include <QLineEdit>
 #include <Qt>
+#include <memory>
 
 VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     setWindowTitle("Reproductor");
@@ -90,9 +100,110 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     // Controles inferiores
     PanelControles *panelControles = new PanelControles(contenedor);
     layout->addWidget(panelControles);
+    ControladorReproduccion *controlador = new ControladorReproduccion(this);
 
-    // Delegar la coordinación de reproducción a ControladorRepro
-    new ControladorRepUI(panelControles, panelIzquierdo, panelDerecho, this);
+    // Función para cargar y reproducir una canción
+    auto filaActual = std::make_shared<int>(-1);
+    auto reproducirFila = [panelDerecho, panelIzquierdo, controlador, filaActual](int fila) {
+        int totalCanciones = panelDerecho->obtenerTabla()->model()->rowCount();
+
+        if (fila < 0 || fila >= totalCanciones){
+            return;
+        }
+        *filaActual = fila;
+
+        // Seleccionar la canción que se está reproduciendo
+        QTableView *tabla = panelDerecho->obtenerTabla();           
+        tabla->selectRow(fila);
+        tabla->scrollTo(tabla->model()->index(fila, 0));        
+        QString ruta = panelDerecho->obtenerRutaCancion(fila);
+        controlador->cargarCancion(ruta);
+        controlador->reproducir();
+        LectorMetadatosMP3 lector;
+        MetadatosMusicales metadatos;
+        std::string error;
+
+        // Priorizar la portada personalizada y si no existe usar la incrustada en el MP3
+        CancionVista cancionSeleccionada;
+        QImage imagen;
+
+        if (panelDerecho->CancionSelect(cancionSeleccionada)) {
+            imagen = GestorImagenes::cargarCancion(cancionSeleccionada.idRola);
+        }
+
+        if (imagen.isNull() && lector.leerArchivo(ruta.toStdString(), metadatos, error)
+            && !metadatos.portadaFrontal.datos.empty()) {
+            imagen.loadFromData(metadatos.portadaFrontal.datos.data(), static_cast<int>(metadatos.portadaFrontal.datos.size())
+            );
+        }
+
+        if (imagen.isNull()) {
+            panelIzquierdo->limpiarPortada();
+        } else {
+            panelIzquierdo->establecerPortada(imagen);
+        }
+    };
+
+    // Doble clic para reproducir
+    connect(panelDerecho->obtenerTabla(), &QTableView::doubleClicked, this, [reproducirFila](const QModelIndex& indice) {
+        reproducirFila(indice.row());
+    });
+
+    // Botón reproducir / pausar
+    connect(panelControles->obtenerBotonReproducir(), &QPushButton::clicked, this, [=]() {
+        if (controlador->estaReproduciendo()){
+            controlador->pausar();
+        } else {
+            controlador->reproducir();
+        }
+    });
+
+    // Canción anterior
+    connect(panelControles->obtenerBotonAnterior(), &QPushButton::clicked, this, [reproducirFila, filaActual]() {
+        reproducirFila(*filaActual - 1);
+    });  
+
+    // Canción siguiente
+    connect(panelControles->obtenerBotonSiguiente(), &QPushButton::clicked, this, [reproducirFila, filaActual]() {
+        reproducirFila(*filaActual + 1);
+    });
+
+    // Control de volumen
+    connect(panelControles->obtenerControlVolumen(), &QSlider::valueChanged, this, [=](int volumen) {
+        controlador->establecerVolumen(volumen / 100.0f);
+    });
+
+    // Actualizar el tiempo de reproducción
+    QMediaPlayer *reproductor = controlador->obtenerReproductor();
+    connect(reproductor, &QMediaPlayer::positionChanged, this, [=](qint64 posicion) {
+        panelControles->actualizarTiempo(posicion, controlador->obtenerDuracion());
+    });
+
+    connect(reproductor, &QMediaPlayer::durationChanged, this, [=](qint64 duracion) {
+        panelControles->actualizarTiempo(controlador->obtenerPosicion(), duracion);
+    });
+
+    // Actualizar el icono de reproducción / pausa
+    connect(reproductor, &QMediaPlayer::playbackStateChanged, this, [=](QMediaPlayer::PlaybackState estado) {
+        panelControles->establecerEstadoReproduccion(estado == QMediaPlayer::PlayingState);
+    });
+
+    // Permitir adelantar o retroceder desde la barra de progreso
+    connect(panelControles->obtenerBarraProgreso(), &QSlider::sliderMoved, this, [=](int valor) {
+        qint64 duracion = controlador->obtenerDuracion();
+
+        if (duracion > 0) {
+            qint64 posicion = (duracion * valor) / 1000;
+            controlador->establecerPosicion(posicion);
+        }
+    });
+
+    // Reproducir automáticamente la siguiente canción
+    connect(controlador->obtenerReproductor(), &QMediaPlayer::mediaStatusChanged, 
+    this, [reproducirFila, filaActual](QMediaPlayer::MediaStatus estado) {
+        if (estado == QMediaPlayer::EndOfMedia)
+            reproducirFila(*filaActual + 1);
+    });
 
     // Estilos iniciales
     setStyleSheet(R"(

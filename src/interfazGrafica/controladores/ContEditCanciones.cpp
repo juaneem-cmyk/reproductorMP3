@@ -3,6 +3,7 @@
 #include "../paneles/PanelCanciones.h"
 #include "../modelos/Canciones.h"
 #include "../ventanas/VentanaEdicion.h"
+#include "../servicios/GestorImagenes.h"
 #include "ConexionSQLite.h"
 #include "Rutas.h"
 #include "EdicionCanciones.h"
@@ -58,8 +59,25 @@ void ControladorEdicionCanciones::editarCancion() {
         return;
     }
 
+    // Guardar o restaurar la portada personalizada, si el usuario lo solicitó
+    QString errorImagen;
+    bool imagenActualizada = true;
+
+    if (!ventana.obtenerRutaImagenSeleccionada().isEmpty()) {
+        imagenActualizada = GestorImagenes::guardarCancion(cancion.idRola, ventana.obtenerRutaImagenSeleccionada(), errorImagen);
+    } else if (ventana.debeEliminarImagenPersonalizada()) {
+        imagenActualizada = GestorImagenes::eliminarCancion(cancion.idRola, errorImagen);
+    }
+
     // Actualizar la tabla
     panelCanciones->recargarCanciones();
-    QMessageBox::information(ventanaPadre, "Canción actualizada",
-        "Los cambios se guardaron correctamente.");
+
+    if (!imagenActualizada) {
+        QMessageBox::warning(ventanaPadre, "Canción actualizada",
+            "Los datos de la canción se guardaron, pero no se pudo actualizar la portada:\n" + errorImagen);
+        return;
+    }
+
+    QMessageBox::information(ventanaPadre, "Canción actualizada", 
+    "Los cambios se guardaron correctamente.");
 }
