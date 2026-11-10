@@ -17,11 +17,13 @@ executable('reproductor', 'main.cpp', 'VentanaPrincipal.cpp',
     # Base de datos
     '../baseDatos/CrearBD.cpp', '../baseDatos/ConexionSQLite.cpp',
     '../baseDatos/InicializarBD.cpp', '../baseDatos/Rutas.cpp',
-    '../baseDatos/Biblioteca.cpp', '../baseDatos/repositorio/EdicionCanciones.cpp',
+    '../baseDatos/Biblioteca.cpp', 
 
     # Repositorio
     '../baseDatos/repositorio/ConsultaRolas.cpp',
     '../baseDatos/repositorio/RepositorioMusical.cpp',
+    '../baseDatos/repositorio/EdicionCanciones.cpp',
+    '../baseDatos/repositorio/EdicionInterp.cpp',
 
     include_directories: include_directories('../baseDatos',
     '../baseDatos/repositorio', '../minero'),

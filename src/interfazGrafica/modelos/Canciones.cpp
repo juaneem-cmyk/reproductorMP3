@@ -53,7 +53,8 @@ void Canciones::cargarCanciones() {
             QString::fromStdString(cancion.album),
             cancion.year,
             QString::fromStdString(cancion.ruta),
-            duracion
+            duracion,
+            cancion.idInterprete, cancion.idTipoInterprete
         });
     }
 }
