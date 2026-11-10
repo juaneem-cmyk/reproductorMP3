@@ -6,17 +6,19 @@
 #include "../servicios/GestorImagenes.h"
 #include "ConexionSQLite.h"
 #include "Rutas.h"
+#include <QDialog>
 #include <QMessageBox>
 #include <QToolButton>
 #include <QWidget>
 
-ControladorEditInterp::ControladorEditInterp(QToolButton *botonEditarInterprete, PanelCanciones *panelCanciones,
+ControladorEditInterp::ControladorEditInterp(QToolButton *botonEditarInterprete, PanelCanciones *panelCanciones, 
     QWidget *ventanaPadre) : QObject(ventanaPadre), panelCanciones(panelCanciones), ventanaPadre(ventanaPadre) {
     connect(botonEditarInterprete, &QToolButton::clicked, this, [this]() {
         editarInterprete();
     });
 }
 
+// Función para editar el intérprete de la canción seleccionada
 void ControladorEditInterp::editarInterprete() {
     CancionVista cancion;
 
@@ -30,14 +32,7 @@ void ControladorEditInterp::editarInterprete() {
         return;
     }
 
-    // Abrir la ventana con los datos actuales y la imagen del intérprete
-    VentanaInterprete ventana(cancion, ventanaPadre);
-
-    if (ventana.exec() != QDialog::Accepted) {
-        return;
-    }
-
-    // Abrir la conexión con SQLite
+    // Abrir la conexión antes de mostrar el editor para cargar los datos existentes
     ConexionSQLite conexion;
     std::string mensajeError;
 
@@ -47,21 +42,31 @@ void ControladorEditInterp::editarInterprete() {
         return;
     }
 
-    // Activar las claves foráneas
     if (!conexion.ejecutarSQL("PRAGMA foreign_keys = ON;", mensajeError)) {
         QMessageBox::critical(ventanaPadre, "Error de base de datos",
             QString::fromStdString(mensajeError));
         return;
     }
-
-    // Actualizar el intérprete seleccionado
     EdicionInterpretes editor(conexion);
-    bool actualizado = editor.actualizarInterprete(
-        cancion.idInterprete,
-        ventana.obtenerNombre().toStdString(),
-        ventana.obtenerTipo(),
-        mensajeError
-    );
+    DatosPersona datosPersona;
+
+    if (!editor.obtenerPersona(cancion.idInterprete, datosPersona, mensajeError)) {
+        QMessageBox::critical(ventanaPadre, "Error al consultar intérprete",
+            QString::fromStdString(mensajeError));
+        return;
+    }
+    VentanaInterprete ventana(cancion, datosPersona, ventanaPadre);
+
+    if (ventana.exec() != QDialog::Accepted) {
+        return;
+    }
+    DatosPersona nuevosDatosPersona;
+    nuevosDatosPersona.nombreReal = ventana.obtenerNombreReal().toStdString();
+    nuevosDatosPersona.fechaNacimiento = ventana.obtenerFechaNacimiento().toStdString();
+    nuevosDatosPersona.fechaFallecimiento = ventana.obtenerFechaFallecimiento().toStdString();
+
+    const bool actualizado = editor.actualizarInterprete(cancion.idInterprete, ventana.obtenerNombre().toStdString(),
+        ventana.obtenerTipo(), nuevosDatosPersona, mensajeError);
 
     if (!actualizado) {
         QMessageBox::critical(ventanaPadre, "Error al editar intérprete",
@@ -73,22 +78,24 @@ void ControladorEditInterp::editarInterprete() {
     QString errorImagen;
     bool imagenActualizada = true;
 
-    if (!ventana.obtenerRutaImagenSeleccionada().isEmpty()) {
-        imagenActualizada = GestorImagenes::guardarInterprete(cancion.idInterprete, 
-        ventana.obtenerRutaImagenSeleccionada(), errorImagen);
-    } else if (ventana.debeEliminarImagenPersonalizada()) {
-        imagenActualizada = GestorImagenes::eliminarInterprete(cancion.idInterprete, errorImagen);
+    if (ventana.obtenerTipo() != 2) {
+        if (!ventana.obtenerRutaImagenSeleccionada().isEmpty()) {
+            imagenActualizada = GestorImagenes::guardarInterprete(cancion.idInterprete, 
+            ventana.obtenerRutaImagenSeleccionada(), errorImagen);
+        } else if (ventana.debeEliminarImagenPersonalizada()) {
+            imagenActualizada = GestorImagenes::eliminarInterprete(cancion.idInterprete, errorImagen);
+        }
     }
-
-    // Actualizar la tabla
     panelCanciones->recargarCanciones();
 
     if (!imagenActualizada) {
         QMessageBox::warning(ventanaPadre, "Intérprete actualizado",
-            "Los datos del intérprete se guardaron, pero no se pudo actualizar su imagen:\n" + errorImagen);
+            "Los datos del intérprete se guardaron, pero no se pudo actualizar su imagen:\n"
+            + errorImagen);
         return;
     }
 
     QMessageBox::information(ventanaPadre, "Intérprete actualizado",
-        "Los cambios se guardaron correctamente.");
+        "Los cambios se guardaron correctamente."
+    );
 }
