@@ -1,18 +1,14 @@
 #include "VentanaPrincipal.h"
-#include "controladores/EditCanciones.h"
+#include "controladores/ContEditCanciones.h"
+#include "controladores/ContEditInterp.h"
 #include "componentes/Portada.h"
 #include "paneles/PanelAlbum.h"
 #include "paneles/PanelCanciones.h"
 #include "paneles/PanelControles.h"
 #include "paneles/BarraHerra.h"
 #include "reproduccion/ControladoRep.h"
-#include "ventanas/VentanaInterp.h"
-#include "EdicionInterp.h"
-#include "modelos/Canciones.h"
 #include "../minero/LectorMetadatos.h"
 #include "../minero/ImportarMusica.h"
-#include "ConexionSQLite.h"
-#include "Rutas.h"
 #include <QItemSelectionModel>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -105,63 +101,8 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     // Delegar la edición de canciones al controlador correspondiente
     new ControladorEdicionCanciones(botonEditarCancion, panelDerecho, this);
 
-    // Abrir y guardar la edición de un intérprete
-    connect(botonEditarInterprete, &QToolButton::clicked, this, [this, panelDerecho]() {
-        CancionVista cancion;
-
-        if (!panelDerecho->CancionSelect(cancion)) {
-            return;
-        }
-
-        if (cancion.idInterprete <= 0) {
-            QMessageBox::warning(this, "Sin intérprete",
-                "La canción seleccionada no tiene un intérprete asociado.");
-            return;
-        }
-
-        // Abrir la ventana con los datos actuales
-        VentanaInterprete ventana(cancion, this);
-
-        if (ventana.exec() != QDialog::Accepted) {
-            return;
-        }
-
-        // Abrir la conexión con SQLite
-        ConexionSQLite conexion;
-        std::string mensajeError;
-
-        if (!conexion.abrir(Rutas::rutaBaseDatos().string(), mensajeError)) {
-            QMessageBox::critical(this, "Error de base de datos", QString::fromStdString(mensajeError));
-            return;
-        }
-
-        // Activar las claves foráneas
-        if (!conexion.ejecutarSQL("PRAGMA foreign_keys = ON;", mensajeError)) {
-            QMessageBox::critical(this, "Error de base de datos",
-                QString::fromStdString(mensajeError));
-            return;
-        }
-
-        // Actualizar el intérprete seleccionado
-        EdicionInterpretes editor(conexion);
-
-        bool actualizado = editor.actualizarInterprete(
-            cancion.idInterprete,
-            ventana.obtenerNombre().toStdString(),
-            ventana.obtenerTipo(),
-            mensajeError
-        );
-
-        if (!actualizado) {
-            QMessageBox::critical(this, "Error al editar intérprete", QString::fromStdString(mensajeError));
-            return;
-        }
-
-        // Actualizar la tabla
-        panelDerecho->recargarCanciones();
-        QMessageBox::information(this, "Intérprete actualizado",
-            "Los cambios se guardaron correctamente.");
-    });
+    // Delegar la edición de intérpretes al controlador correspondiente
+    new ControladorEditInterp(botonEditarInterprete, panelDerecho, this);
 
     // Importar música desde un directorio
     QToolButton *botonImportar = barraHerramientas->obtenerBotonImportarMusica();

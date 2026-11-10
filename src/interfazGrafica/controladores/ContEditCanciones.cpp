@@ -1,4 +1,4 @@
-#include "EditCanciones.h"
+#include "ContEditCanciones.h"
 #include "EdicionCanciones.h"
 #include "../paneles/PanelCanciones.h"
 #include "../modelos/Canciones.h"
