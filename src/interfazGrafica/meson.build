@@ -10,7 +10,7 @@ executable('reproductor', 'main.cpp', 'VentanaPrincipal.cpp',
     'ventanas/VentanaEdicion.cpp', 'ventanas/VentanaInterp.cpp',
     'reproduccion/ControladoRep.cpp',
     'controladores/ContEditCanciones.cpp', 'controladores/ContEditInterp.cpp',
-    'controladores/ContImport.cpp',
+    'controladores/ContImport.cpp', 'controladores/ContRepro.cpp',
 
     # Lector de metadatos e importación
     '../minero/LectorMetadatos.cpp', '../minero/ImportarMusica.cpp',
