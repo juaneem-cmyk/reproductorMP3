@@ -4,6 +4,7 @@
 #include <QTableView>
 #include <QHeaderView>
 #include <QSortFilterProxyModel>
+#include <QItemSelectionModel>
 
 PanelCanciones::PanelCanciones(QWidget *parent) : QWidget(parent) {
     setObjectName("panelDerecho");
@@ -82,6 +83,23 @@ QString PanelCanciones::obtenerRutaCancion(int fila) const {
     }
     QModelIndex indiceOriginal = filtroCanciones->mapToSource(indiceProxy);
     return modeloCanciones->rutaEnFila(indiceOriginal.row());
+}
+
+bool PanelCanciones::CancionSelect(CancionVista &cancion) const {
+    QModelIndexList seleccion = tablaCanciones->selectionModel()->selectedRows();
+
+    if (seleccion.isEmpty()) {
+        return false;
+    }
+
+    // Convertir el índice filtrado al índice del modelo original
+    QModelIndex indiceOriginal = filtroCanciones->mapToSource(seleccion.first());
+
+    if (!indiceOriginal.isValid()) {
+        return false;
+    }
+
+    return modeloCanciones->obtenerCancion(indiceOriginal.row(), cancion);
 }
 
 void PanelCanciones::establecerTextoBusqueda(const QString &texto) {

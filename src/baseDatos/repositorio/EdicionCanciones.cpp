@@ -9,7 +9,7 @@ EdicionCanciones::EdicionCanciones(ConexionSQLite& conexion) : conexion(conexion
 }
 
 bool EdicionCanciones::actualizarCancion(int idRola, const std::string& titulo, const std::string& artista,
-    const std::string& album, std::string& mensajeError) const {
+    const std::string& album, int year, std::string& mensajeError) const {
     mensajeError.clear();
 
     if (!conexion.estaAbierta()) {
@@ -35,7 +35,6 @@ bool EdicionCanciones::actualizarCancion(int idRola, const std::string& titulo, 
     };
     int idInterpreteActual = 0;
     int idAlbumActual = 0;
-    int anio = 0;
     bool tieneAlbumActual = false;
     bool encontrada = false;
 
@@ -89,7 +88,6 @@ bool EdicionCanciones::actualizarCancion(int idRola, const std::string& titulo, 
                     };
 
                     ruta = obtenerTexto(2);
-                    anio = sqlite3_column_int(sentencia.get(), 3);
                     artistaActual = obtenerTexto(4);
                     albumActual = obtenerTexto(5);
                     encontrada = true;
@@ -128,7 +126,7 @@ bool EdicionCanciones::actualizarCancion(int idRola, const std::string& titulo, 
 
     // Si cambió el álbum, buscar su directorio correspondiente
     if (album != albumActual) {
-        if (!repositorio.obtenerOCrearAlbum(ruta, album, static_cast<unsigned int>(anio),
+        if (!repositorio.obtenerOCrearAlbum(ruta, album, static_cast<unsigned int>(year),
             idAlbum, tieneAlbum, mensajeError)) {
             cancelarTransaccion();
             return false;
@@ -139,8 +137,8 @@ bool EdicionCanciones::actualizarCancion(int idRola, const std::string& titulo, 
     {
         const char* actualizacion =
             "UPDATE rolas "
-            "SET id_performer = ?, id_album = ?, title = ? "
-            "WHERE id_rola = ?;";
+            "SET id_performer = ?, id_album = ?, title = ?, year = ? "
+            "WHERE id_rola = ?;";        
         sqlite3_stmt* temporal = nullptr;
 
         int codigo = sqlite3_prepare_v2(baseDatos, actualizacion, -1, &temporal, nullptr);
@@ -168,15 +166,24 @@ bool EdicionCanciones::actualizarCancion(int idRola, const std::string& titulo, 
             }
 
             if (codigo == SQLITE_OK) {
-                codigo = sqlite3_bind_int(sentencia.get(), 4, idRola);
+                codigo = sqlite3_bind_int(sentencia.get(), 4, year);
             }
 
             if (codigo == SQLITE_OK) {
-                codigo = sqlite3_step(sentencia.get());
+                codigo = sqlite3_bind_int(sentencia.get(), 5, idRola);
             }
 
-            if (codigo != SQLITE_DONE) {
+            // Comprobar que todos los parámetros se asociaron correctamente
+            if (codigo != SQLITE_OK) {
                 mensajeError = sqlite3_errmsg(baseDatos);
+            } else {
+                codigo = sqlite3_step(sentencia.get());
+
+                if (codigo != SQLITE_DONE) {
+                    mensajeError = sqlite3_errmsg(baseDatos);
+                } else if (sqlite3_changes(baseDatos) == 0) {
+                    mensajeError = "SQLite no actualizó ningún registro.";
+                }
             }
         }
     }

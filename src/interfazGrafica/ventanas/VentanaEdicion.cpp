@@ -7,6 +7,7 @@
 #include <QDialogButtonBox>
 #include <QPushButton>
 #include <QMessageBox>
+#include <QSpinBox>
 
 VentanaEdit::VentanaEdit(const CancionVista& cancion, QWidget *parent) : QDialog(parent) {
     setWindowTitle("Editar canción");
@@ -23,9 +24,15 @@ VentanaEdit::VentanaEdit(const CancionVista& cancion, QWidget *parent) : QDialog
     campoTitulo->setClearButtonEnabled(true);
     campoArtista->setClearButtonEnabled(true);
     campoAlbum->setClearButtonEnabled(true);
+    campoYear = new QSpinBox(this);
+    campoYear->setRange(0, 9999);
+    campoYear->setSpecialValueText("Desconocido");
+    campoYear->setValue(cancion.year);
+
     formulario->addRow("Título:", campoTitulo);
     formulario->addRow("Artista:", campoArtista);
     formulario->addRow("Álbum:", campoAlbum);
+    formulario->addRow("Año:", campoYear);
 
     // Información sobre la asociación del álbum
     QLabel *informacion = new QLabel(
@@ -100,4 +107,8 @@ QString VentanaEdit::obtenerArtista() const {
 
 QString VentanaEdit::obtenerAlbum() const {
     return campoAlbum->text().trimmed();
+}
+
+int VentanaEdit::obtenerYear() const {
+    return campoYear->value();
 }

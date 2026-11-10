@@ -5,8 +5,14 @@
 #include "paneles/PanelControles.h"
 #include "paneles/BarraHerra.h"
 #include "reproduccion/ControladoRep.h"
+#include "ventanas/VentanaEdicion.h"
+#include "modelos/Canciones.h"
 #include "../minero/LectorMetadatos.h"
 #include "../minero/ImportarMusica.h"
+#include "ConexionSQLite.h"
+#include "Rutas.h"
+#include "EdicionCanciones.h"
+#include <QItemSelectionModel>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QToolButton>
@@ -73,6 +79,72 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     connect(barraHerramientas->obtenerBarraBusqueda(), &QLineEdit::textChanged,
         panelDerecho, &PanelCanciones::establecerTextoBusqueda
     );
+
+    // Botón para editar la canción seleccionada
+    QToolButton *botonEditarCancion = barraHerramientas->obtenerBotonEditarCancion();
+
+    // Inicialmente no hay ninguna canción seleccionada
+    botonEditarCancion->setEnabled(false);
+
+    // Habilitar o deshabilitar el botón según la selección
+    auto actualizarEstadoEdicion = [botonEditarCancion, panelDerecho]() {
+        bool haySeleccion = !panelDerecho->obtenerTabla()->selectionModel()->selectedRows().isEmpty();
+        botonEditarCancion->setEnabled(haySeleccion);
+    };
+
+    connect(panelDerecho->obtenerTabla()->selectionModel(), &QItemSelectionModel::selectionChanged,
+        this, [actualizarEstadoEdicion](const QItemSelection&, const QItemSelection&) {
+            actualizarEstadoEdicion();
+        }
+    );
+
+    // Abrir y guardar la edición de una canción
+    connect(botonEditarCancion, &QToolButton::clicked, this, [this, panelDerecho]() {
+        CancionVista cancion;
+
+        if (!panelDerecho->CancionSelect(cancion)) {
+            return;
+        }
+
+        // Abrir la ventana con los datos actuales
+        VentanaEdit ventana(cancion, this);
+
+        if (ventana.exec() != QDialog::Accepted) {
+            return;
+        }
+
+        // Abrir la conexión con SQLite
+        ConexionSQLite conexion;
+        std::string mensajeError;
+
+        if (!conexion.abrir(
+            Rutas::rutaBaseDatos().string(), mensajeError)) {
+            QMessageBox::critical(this, "Error de base de datos", QString::fromStdString(mensajeError));
+            return;
+        }
+
+        // Activar las claves foráneas
+        if (!conexion.ejecutarSQL("PRAGMA foreign_keys = ON;", mensajeError)) {
+            QMessageBox::critical(this, "Error de base de datos", QString::fromStdString(mensajeError));
+            return;
+        }
+
+        // Actualizar los datos de la canción
+        EdicionCanciones editor(conexion);
+        bool actualizado = editor.actualizarCancion(cancion.idRola,
+            ventana.obtenerTitulo().toStdString(), ventana.obtenerArtista().toStdString(),
+            ventana.obtenerAlbum().toStdString(), ventana.obtenerYear(), mensajeError
+        );
+
+        if (!actualizado) {
+            QMessageBox::critical(this, "Error al editar canción", QString::fromStdString(mensajeError));
+            return;
+        }
+
+        // Actualizar la tabla
+        panelDerecho->recargarCanciones();
+        QMessageBox::information(this, "Canción actualizada", "Los cambios se guardaron correctamente.");
+    });
 
     // Importar música desde un directorio
     QToolButton *botonImportar = barraHerramientas->obtenerBotonImportarMusica();
