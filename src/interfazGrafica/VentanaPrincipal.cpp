@@ -1,17 +1,18 @@
 #include "VentanaPrincipal.h"
+#include "controladores/EditCanciones.h"
 #include "componentes/Portada.h"
 #include "paneles/PanelAlbum.h"
 #include "paneles/PanelCanciones.h"
 #include "paneles/PanelControles.h"
 #include "paneles/BarraHerra.h"
 #include "reproduccion/ControladoRep.h"
-#include "ventanas/VentanaEdicion.h"
+#include "ventanas/VentanaInterp.h"
+#include "EdicionInterp.h"
 #include "modelos/Canciones.h"
 #include "../minero/LectorMetadatos.h"
 #include "../minero/ImportarMusica.h"
 #include "ConexionSQLite.h"
 #include "Rutas.h"
-#include "EdicionCanciones.h"
 #include <QItemSelectionModel>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -82,14 +83,17 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
 
     // Botón para editar la canción seleccionada
     QToolButton *botonEditarCancion = barraHerramientas->obtenerBotonEditarCancion();
+    QToolButton *botonEditarInterprete = barraHerramientas->obtenerBotonEditarInterprete();
 
     // Inicialmente no hay ninguna canción seleccionada
     botonEditarCancion->setEnabled(false);
+    botonEditarInterprete->setEnabled(false);
 
-    // Habilitar o deshabilitar el botón según la selección
-    auto actualizarEstadoEdicion = [botonEditarCancion, panelDerecho]() {
+    // Habilitar o deshabilitar los botones según la selección
+    auto actualizarEstadoEdicion = [botonEditarCancion, botonEditarInterprete, panelDerecho]() {
         bool haySeleccion = !panelDerecho->obtenerTabla()->selectionModel()->selectedRows().isEmpty();
         botonEditarCancion->setEnabled(haySeleccion);
+        botonEditarInterprete->setEnabled(haySeleccion);
     };
 
     connect(panelDerecho->obtenerTabla()->selectionModel(), &QItemSelectionModel::selectionChanged,
@@ -98,16 +102,25 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
         }
     );
 
-    // Abrir y guardar la edición de una canción
-    connect(botonEditarCancion, &QToolButton::clicked, this, [this, panelDerecho]() {
+    // Delegar la edición de canciones al controlador correspondiente
+    new ControladorEdicionCanciones(botonEditarCancion, panelDerecho, this);
+
+    // Abrir y guardar la edición de un intérprete
+    connect(botonEditarInterprete, &QToolButton::clicked, this, [this, panelDerecho]() {
         CancionVista cancion;
 
         if (!panelDerecho->CancionSelect(cancion)) {
             return;
         }
 
+        if (cancion.idInterprete <= 0) {
+            QMessageBox::warning(this, "Sin intérprete",
+                "La canción seleccionada no tiene un intérprete asociado.");
+            return;
+        }
+
         // Abrir la ventana con los datos actuales
-        VentanaEdit ventana(cancion, this);
+        VentanaInterprete ventana(cancion, this);
 
         if (ventana.exec() != QDialog::Accepted) {
             return;
@@ -117,104 +130,107 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
         ConexionSQLite conexion;
         std::string mensajeError;
 
-        if (!conexion.abrir(
-            Rutas::rutaBaseDatos().string(), mensajeError)) {
+        if (!conexion.abrir(Rutas::rutaBaseDatos().string(), mensajeError)) {
             QMessageBox::critical(this, "Error de base de datos", QString::fromStdString(mensajeError));
             return;
         }
 
         // Activar las claves foráneas
         if (!conexion.ejecutarSQL("PRAGMA foreign_keys = ON;", mensajeError)) {
-            QMessageBox::critical(this, "Error de base de datos", QString::fromStdString(mensajeError));
+            QMessageBox::critical(this, "Error de base de datos",
+                QString::fromStdString(mensajeError));
             return;
         }
 
-        // Actualizar los datos de la canción
-        EdicionCanciones editor(conexion);
-        bool actualizado = editor.actualizarCancion(cancion.idRola,
-            ventana.obtenerTitulo().toStdString(), ventana.obtenerArtista().toStdString(),
-            ventana.obtenerAlbum().toStdString(), ventana.obtenerYear(), mensajeError
+        // Actualizar el intérprete seleccionado
+        EdicionInterpretes editor(conexion);
+
+        bool actualizado = editor.actualizarInterprete(
+            cancion.idInterprete,
+            ventana.obtenerNombre().toStdString(),
+            ventana.obtenerTipo(),
+            mensajeError
         );
 
         if (!actualizado) {
-            QMessageBox::critical(this, "Error al editar canción", QString::fromStdString(mensajeError));
+            QMessageBox::critical(this, "Error al editar intérprete", QString::fromStdString(mensajeError));
             return;
         }
 
         // Actualizar la tabla
         panelDerecho->recargarCanciones();
-        QMessageBox::information(this, "Canción actualizada", "Los cambios se guardaron correctamente.");
+        QMessageBox::information(this, "Intérprete actualizado",
+            "Los cambios se guardaron correctamente.");
     });
 
     // Importar música desde un directorio
     QToolButton *botonImportar = barraHerramientas->obtenerBotonImportarMusica();
     connect(botonImportar, &QToolButton::clicked, this, [this, botonImportar, panelDerecho]() {
 
-            // Seleccionar el directorio que contiene la música
-            QString directorio = QFileDialog::getExistingDirectory(this, "Seleccionar carpeta de música", QDir::homePath());
+        // Seleccionar el directorio que contiene la música
+        QString directorio = QFileDialog::getExistingDirectory(this, "Seleccionar carpeta de música", QDir::homePath());
+        if (directorio.isEmpty()) {
+            return;
+        }
 
-            if (directorio.isEmpty()) {
-                return;
-            }
+        // Convertir la ruta de Qt a filesystem
+        const QByteArray rutaUTF8 = directorio.toUtf8();
+        const std::filesystem::path ruta = std::filesystem::u8path(rutaUTF8.constData());
 
-            // Convertir la ruta de Qt a filesystem
-            const QByteArray rutaUTF8 = directorio.toUtf8();
-            const std::filesystem::path ruta = std::filesystem::u8path(rutaUTF8.constData());
+        // Evitar que se inicie otra importación simultáneamente
+        botonImportar->setEnabled(false);
+        botonImportar->setToolTip("Importando música...");
 
-            // Evitar que se inicie otra importación simultáneamente
-            botonImportar->setEnabled(false);
-            botonImportar->setToolTip("Importando música...");
+        // Observar el trabajo en segundo plano
+        auto *observador = new QFutureWatcher<ResultadoImportacionUI>(this);
 
-            // Observar el trabajo en segundo plano
-            auto *observador = new QFutureWatcher<ResultadoImportacionUI>(this);
-            connect(observador, &QFutureWatcher<ResultadoImportacionUI>::finished, 
-                this, [this, observador, panelDerecho, botonImportar]() {
-                    ResultadoImportacionUI salida = observador->result();
-                    observador->deleteLater();
-                    botonImportar->setEnabled(true);
-                    botonImportar->setToolTip("Importar música");
+        connect(observador, &QFutureWatcher<ResultadoImportacionUI>::finished, 
+            this, [this, observador, panelDerecho, botonImportar]() {
+                ResultadoImportacionUI salida = observador->result();
+                observador->deleteLater();
+                botonImportar->setEnabled(true);
+                botonImportar->setToolTip("Importar música");
 
-                    // Mostrar un error si no se pudo completar la importación
-                    if (!salida.correcto) {
-                        QMessageBox::critical(this, "Error de importación", QString::fromStdString(salida.mensajeError));
-                        return;
-                    }
-
-                    // Actualizar la biblioteca visible
-                    panelDerecho->recargarCanciones();
-                    const ResultadoMinado& r = salida.resultado;
-
-                    if (r.archivosEncontrados == 0) {
-                        QMessageBox::information(this, "Importación finalizada",
-                            "No se encontraron archivos MP3 en el directorio seleccionado."
-                        );
-                        return;
-                    }
-
-                    // Construir el resumen
-                    QString resumen = QString(
-                        "Archivos encontrados: %1\n"
-                        "Archivos procesados: %2\n"
-                        "Canciones nuevas: %3\n"
-                        "Canciones existentes: %4\n"
-                        "Archivos omitidos: %5\n"
-                        "Errores de registro: %6"
-                    )
-                    .arg(static_cast<qulonglong>(r.archivosEncontrados))
-                    .arg(static_cast<qulonglong>(r.archivosProcesados))
-                    .arg(static_cast<qulonglong>(r.cancionesInsertadas))
-                    .arg(static_cast<qulonglong>(r.cancionesExistentes))
-                    .arg(static_cast<qulonglong>(r.archivosOmitidos))
-                    .arg(static_cast<qulonglong>(r.erroresRegistro));
-
-                    // Mostrar el resultado
-                    if (r.erroresRegistro > 0 || r.archivosOmitidos > 0) {
-                        QMessageBox::warning(this, "Importación finalizada con observaciones", resumen);
-                    } else {
-                        QMessageBox::information(this, "Importación completada", resumen);
-                    }
+                // Mostrar un error si no se pudo completar la importación
+                if (!salida.correcto) {
+                    QMessageBox::critical(this, "Error de importación", QString::fromStdString(salida.mensajeError));
+                    return;
                 }
-            );
+
+                // Actualizar la biblioteca visible
+                panelDerecho->recargarCanciones();
+                const ResultadoMinado& r = salida.resultado;
+                if (r.archivosEncontrados == 0) {
+                    QMessageBox::information(this, "Importación finalizada",
+                        "No se encontraron archivos MP3 en el directorio seleccionado."
+                    );
+                    return;
+                }
+
+                // Construir el resumen
+                QString resumen = QString(
+                    "Archivos encontrados: %1\n"
+                    "Archivos procesados: %2\n"
+                    "Canciones nuevas: %3\n"
+                    "Canciones existentes: %4\n"
+                    "Archivos omitidos: %5\n"
+                    "Errores de registro: %6"
+                )
+                .arg(static_cast<qulonglong>(r.archivosEncontrados))
+                .arg(static_cast<qulonglong>(r.archivosProcesados))
+                .arg(static_cast<qulonglong>(r.cancionesInsertadas))
+                .arg(static_cast<qulonglong>(r.cancionesExistentes))
+                .arg(static_cast<qulonglong>(r.archivosOmitidos))
+                .arg(static_cast<qulonglong>(r.erroresRegistro));
+                
+                // Mostrar el resultado
+                if (r.erroresRegistro > 0 || r.archivosOmitidos > 0) {
+                    QMessageBox::warning(this, "Importación finalizada con observaciones", resumen);
+                } else {
+                    QMessageBox::information(this, "Importación completada", resumen);
+                }
+            }
+        );
 
             // Ejecutar el importador fuera del hilo de la interfaz
             observador->setFuture(QtConcurrent::run([ruta]() {
