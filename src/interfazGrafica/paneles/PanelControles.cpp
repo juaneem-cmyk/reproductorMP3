@@ -3,6 +3,7 @@
 #include <QToolButton>
 #include <QSlider>
 #include <QLabel>
+#include <QStringList>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QStyle>
@@ -144,6 +145,25 @@ void PanelControles::establecerEstadoVolumen(bool silenciado, int volumen) {
     QStyle::StandardPixmap icono = sinSonido ? QStyle::SP_MediaVolumeMuted : QStyle::SP_MediaVolume;
     botonVolumen->setIcon(style()->standardIcon(icono));
     botonVolumen->setToolTip(silenciado ? "Activar sonido" : "Silenciar");
+}
+
+// Actualizar la información de la canción que se está reproduciendo
+void PanelControles::establecerInformacionCancion(const QString &titulo, const QString &artista,
+    const QString &album, int year) {
+    tituloCancion->setText(titulo.isEmpty() ? "Sin título" : titulo);
+
+    // Mostrar los datos disponibles sin dejar separadores vacíos
+    QStringList detalles;
+    detalles.append(artista.isEmpty() ? "Artista desconocido" : artista);
+
+    if (!album.isEmpty()) {
+        detalles.append(album);
+    }
+
+    if (year > 0) {
+        detalles.append(QString::number(year));
+    }
+    detallesCancion->setText(detalles.join(" · "));
 }
 
 QPushButton *PanelControles::obtenerBotonAnterior() const {

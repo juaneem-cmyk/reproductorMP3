@@ -137,6 +137,8 @@ void ControladorRepUI::reproducirFila(int fila) {
     CancionVista cancionSeleccionada;
 
     if (panelCanciones->CancionSelect(cancionSeleccionada)) {
+        panelControles->establecerInformacionCancion(cancionSeleccionada.titulo,
+        cancionSeleccionada.artista, cancionSeleccionada.album, cancionSeleccionada.year);
         imagen = GestorImagenes::cargarCancion(cancionSeleccionada.idRola);
     }
 

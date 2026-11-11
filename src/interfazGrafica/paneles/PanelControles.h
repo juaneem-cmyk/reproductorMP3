@@ -2,6 +2,7 @@
 #define PANEL_CONTROLES_H
 
 #include <QWidget>
+#include <QString>
 
 class QPushButton;
 class QToolButton;
@@ -15,6 +16,8 @@ public:
     void actualizarTiempo(qint64 posicion, qint64 duracion);
     void establecerEstadoReproduccion(bool reproduciendo);
     void establecerEstadoVolumen(bool silenciado, int volumen);
+    void establecerInformacionCancion(const QString &titulo, const QString &artista,
+    const QString &album, int year);
 
     // Métodos para obtener los botones y controles
     QPushButton *obtenerBotonAnterior() const;
