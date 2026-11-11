@@ -1,24 +1,27 @@
 #ifndef VENTANA_INTERPRETE_H
 #define VENTANA_INTERPRETE_H
 
+#include "../../baseDatos/repositorio/EdicionInterp.h"
 #include <QDialog>
 #include <QImage>
 #include <QString>
+#include <vector>
 
 struct CancionVista;
-struct DatosPersona;
-struct DatosGrupo;
 class QCheckBox;
 class QComboBox;
 class QDateEdit;
 class QLineEdit;
 class QLabel;
+class QListWidget;
+class QPushButton;
 class QWidget;
 
 class VentanaInterprete : public QDialog {
 public:
     explicit VentanaInterprete(const CancionVista& cancion, const DatosPersona& datosPersona,
-        const DatosGrupo& datosGrupo, QWidget *parent = nullptr);
+        const DatosGrupo& datosGrupo, const std::vector<DatosIntegrante>& integrantes,
+        const std::vector<DatosIntegrante>& personasDisponibles, QWidget *parent = nullptr);
     int obtenerTipo() const;
     bool debeEliminarImagenPersonalizada() const;
 
@@ -28,6 +31,7 @@ public:
     QString obtenerFechaFallecimiento() const;
     QString obtenerFechaCreacion() const;
     QString obtenerFechaSeparacion() const;
+    std::vector<int> obtenerIdsIntegrantes() const;
     QString obtenerRutaImagenSeleccionada() const;
 
 private:
@@ -47,6 +51,13 @@ private:
     QDateEdit *campoFechaCreacion;
     QCheckBox *fechaSeparacionActiva;
     QDateEdit *campoFechaSeparacion;
+    QListWidget *listaIntegrantes;
+    QLabel *etiquetaCantidadIntegrantes;
+    QLabel *etiquetaSinIntegrantes;
+    QPushButton *botonQuitarIntegrante;
+    int idInterprete;
+    std::vector<DatosIntegrante> integrantesGrupo;
+    std::vector<DatosIntegrante> personasDisponibles;
     QImage imagenIncrustada;
     QString rutaImagenSeleccionada;
     
@@ -56,5 +67,8 @@ private:
     void restaurarImagenOriginal();
     void mostrarImagen(const QImage& imagen);
     void actualizarVisibilidadImagen();
+    void actualizarListaIntegrantes();
+    void agregarIntegrante();
+    void quitarIntegrante();
 };
 #endif

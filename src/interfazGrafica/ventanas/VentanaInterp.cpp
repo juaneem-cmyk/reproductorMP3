@@ -3,10 +3,12 @@
 #include "../modelos/Canciones.h"
 #include "../servicios/GestorImagenes.h"
 #include "../../minero/LectorMetadatos.h"
+#include <algorithm>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDate>
 #include <QDateEdit>
+#include <QAbstractItemView>
 #include <QDialogButtonBox>
 #include <QFileDialog>
 #include <QFormLayout>
@@ -14,6 +16,8 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
+#include <QListWidget>
+#include <QListWidgetItem>
 #include <QMessageBox>
 #include <QPixmap>
 #include <QPushButton>
@@ -51,7 +55,10 @@ QWidget* crearCampoFecha(QCheckBox *&activa, QDateEdit *&campo, QWidget *parent)
 }
 
 VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPersona& datosPersona,
-    const DatosGrupo& datosGrupo, QWidget *parent) : QDialog(parent) {
+    const DatosGrupo& datosGrupo, const std::vector<DatosIntegrante>& integrantes,
+    const std::vector<DatosIntegrante>& personasDisponibles, QWidget *parent)
+    : QDialog(parent), idInterprete(cancion.idInterprete),
+    integrantesGrupo(integrantes), personasDisponibles(personasDisponibles) {
     setWindowTitle("Editar intérprete");
     setMinimumWidth(430);
     setModal(true);
@@ -90,13 +97,42 @@ VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPer
     // Datos específicos de un grupo
     QGroupBox *informacionGrupo = new QGroupBox("Información del grupo", this);
     seccionGrupo = informacionGrupo;
-    QFormLayout *formularioGrupo = new QFormLayout(informacionGrupo);
+    QVBoxLayout *layoutGrupo = new QVBoxLayout(informacionGrupo);
+    QFormLayout *formularioGrupo = new QFormLayout();
     QWidget *filaCreacion = crearCampoFecha(fechaCreacionActiva, campoFechaCreacion, informacionGrupo);
     QWidget *filaSeparacion = crearCampoFecha(fechaSeparacionActiva, campoFechaSeparacion, informacionGrupo);
     cargarFecha(datosGrupo.fechaCreacion, fechaCreacionActiva, campoFechaCreacion);
     cargarFecha(datosGrupo.fechaSeparacion, fechaSeparacionActiva, campoFechaSeparacion);
     formularioGrupo->addRow("Fecha de creación:", filaCreacion);
     formularioGrupo->addRow("Fecha de separación:", filaSeparacion);
+    layoutGrupo->addLayout(formularioGrupo);
+
+    // Personas asociadas al grupo
+    QGroupBox *seccionIntegrantes = new QGroupBox("Integrantes", informacionGrupo);
+    QVBoxLayout *layoutIntegrantes = new QVBoxLayout(seccionIntegrantes);
+    QLabel *descripcionIntegrantes = new QLabel("Personas asociadas al grupo", seccionIntegrantes);
+    etiquetaCantidadIntegrantes = new QLabel(seccionIntegrantes);
+    QHBoxLayout *encabezadoIntegrantes = new QHBoxLayout();
+    encabezadoIntegrantes->addWidget(descripcionIntegrantes);
+    encabezadoIntegrantes->addStretch();
+    encabezadoIntegrantes->addWidget(etiquetaCantidadIntegrantes);
+    listaIntegrantes = new QListWidget(seccionIntegrantes);
+    listaIntegrantes->setSelectionMode(QAbstractItemView::SingleSelection);
+    listaIntegrantes->setMaximumHeight(110);
+    etiquetaSinIntegrantes = new QLabel("Todavía no hay integrantes.", seccionIntegrantes);
+    etiquetaSinIntegrantes->setAlignment(Qt::AlignCenter);
+    QPushButton *botonAgregarIntegrante = new QPushButton("Agregar integrante", seccionIntegrantes);
+    botonQuitarIntegrante = new QPushButton("Quitar seleccionado", seccionIntegrantes);
+    botonQuitarIntegrante->setEnabled(false);
+    QHBoxLayout *botonesIntegrantes = new QHBoxLayout();
+    botonesIntegrantes->addWidget(botonAgregarIntegrante);
+    botonesIntegrantes->addWidget(botonQuitarIntegrante);
+    layoutIntegrantes->addLayout(encabezadoIntegrantes);
+    layoutIntegrantes->addWidget(listaIntegrantes);
+    layoutIntegrantes->addWidget(etiquetaSinIntegrantes);
+    layoutIntegrantes->addLayout(botonesIntegrantes);
+    layoutGrupo->addWidget(seccionIntegrantes);
+    actualizarListaIntegrantes();
 
     // Leer el marco APIC de tipo Artist de la canción seleccionada
     LectorMetadatosMP3 lector;
@@ -169,6 +205,11 @@ VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPer
     connect(cambiarImagen, &QPushButton::clicked, this, &VentanaInterprete::seleccionarImagen);
     connect(restaurarImagen, &QPushButton::clicked, this, &VentanaInterprete::restaurarImagenOriginal);
     connect(campoTipo, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int) { actualizarVisibilidadImagen(); });
+    connect(botonAgregarIntegrante, &QPushButton::clicked, this, &VentanaInterprete::agregarIntegrante);
+    connect(botonQuitarIntegrante, &QPushButton::clicked, this, &VentanaInterprete::quitarIntegrante);
+    connect(listaIntegrantes, &QListWidget::itemSelectionChanged, this, [this]() {
+        botonQuitarIntegrante->setEnabled(listaIntegrantes->currentItem() != nullptr);
+    });
     actualizarVisibilidadImagen();
     connect(guardar, &QPushButton::clicked, this, &VentanaInterprete::guardarCambios);
     connect(cancelar, &QPushButton::clicked, this, &QDialog::reject);
@@ -180,7 +221,7 @@ VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPer
             background-color: #303B27;
             border: 1px solid #805638;
         }
-        QLineEdit, QComboBox, QDateEdit {
+        QLineEdit, QComboBox, QDateEdit, QListWidget {
             background-color: #303B27;
             color: #E6E5D7;
             border: 1px solid #805638;
@@ -191,6 +232,10 @@ VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPer
             background-color: #303B27;
             color: #E6E5D7;
             selection-background-color: #5E873B;
+        }
+        QListWidget::item:selected {
+            background-color: #5E873B;
+            color: white;
         }
         QCheckBox { color: #E6E5D7; }
         QPushButton {
@@ -276,6 +321,114 @@ void VentanaInterprete::actualizarVisibilidadImagen() {
     seccionImagen->setVisible(tipo != 2);
 }
 
+void VentanaInterprete::actualizarListaIntegrantes() {
+    listaIntegrantes->clear();
+
+    for (const DatosIntegrante& integrante : integrantesGrupo) {
+        listaIntegrantes->addItem(QString::fromStdString(integrante.nombre));
+    }
+    const int cantidad = static_cast<int>(integrantesGrupo.size());
+    etiquetaCantidadIntegrantes->setText(cantidad == 1 ? QStringLiteral("1 integrante") 
+    : QString("%1 integrantes").arg(cantidad));
+    listaIntegrantes->setVisible(cantidad > 0);
+    etiquetaSinIntegrantes->setVisible(cantidad == 0);
+    botonQuitarIntegrante->setEnabled(false);
+}
+
+void VentanaInterprete::agregarIntegrante() {
+    std::vector<DatosIntegrante> disponibles;
+
+    for (const DatosIntegrante& persona : personasDisponibles) {
+        if (persona.idPersona == idInterprete) {
+            continue;
+        }
+
+        const bool yaAgregado = std::any_of(integrantesGrupo.begin(), integrantesGrupo.end(),
+            [&persona](const DatosIntegrante& integrante) {
+                return integrante.idPersona == persona.idPersona;
+            });
+
+        if (!yaAgregado) {
+            disponibles.push_back(persona);
+        }
+    }
+
+    if (disponibles.empty()) {
+        QMessageBox::information(this, "Sin personas disponibles",
+            "No hay más personas registradas que se puedan agregar a este grupo.");
+        return;
+    }
+
+    QDialog dialog(this);
+    dialog.setWindowTitle("Agregar integrante");
+    dialog.setMinimumWidth(340);
+    QVBoxLayout *layout = new QVBoxLayout(&dialog);
+    QLabel *descripcion = new QLabel("Selecciona una persona:", &dialog);
+    QLineEdit *filtro = new QLineEdit(&dialog);
+    filtro->setPlaceholderText("Buscar persona...");
+    QListWidget *lista = new QListWidget(&dialog);
+
+    for (const DatosIntegrante& persona : disponibles) {
+        QListWidgetItem *elemento = new QListWidgetItem(
+            QString::fromStdString(persona.nombre), lista);
+        elemento->setData(Qt::UserRole, persona.idPersona);
+    }
+
+    QDialogButtonBox *botones = new QDialogButtonBox(
+        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
+    QPushButton *agregar = botones->button(QDialogButtonBox::Ok);
+    agregar->setText("Agregar");
+    agregar->setEnabled(false);
+    layout->addWidget(descripcion);
+    layout->addWidget(filtro);
+    layout->addWidget(lista);
+    layout->addWidget(botones);
+
+    connect(filtro, &QLineEdit::textChanged, &dialog, [lista](const QString& texto) {
+        for (int i = 0; i < lista->count(); ++i) {
+            QListWidgetItem *elemento = lista->item(i);
+            elemento->setHidden(!elemento->text().contains(texto, Qt::CaseInsensitive));
+        }
+
+        if (lista->currentItem() != nullptr && lista->currentItem()->isHidden()) {
+            lista->setCurrentItem(nullptr);
+        }
+    });
+    connect(lista, &QListWidget::itemSelectionChanged, &dialog, [lista, agregar]() {
+        agregar->setEnabled(lista->currentItem() != nullptr);
+    });
+    connect(lista, &QListWidget::itemDoubleClicked, &dialog, [&dialog](QListWidgetItem*) {
+        dialog.accept();
+    });
+    connect(botones, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    connect(botones, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+
+    if (dialog.exec() != QDialog::Accepted || lista->currentItem() == nullptr) {
+        return;
+    }
+
+    const int idPersona = lista->currentItem()->data(Qt::UserRole).toInt();
+    const auto persona = std::find_if(disponibles.begin(), disponibles.end(),
+        [idPersona](const DatosIntegrante& integrante) {
+            return integrante.idPersona == idPersona;
+        });
+
+    if (persona != disponibles.end()) {
+        integrantesGrupo.push_back(*persona);
+        actualizarListaIntegrantes();
+    }
+}
+
+void VentanaInterprete::quitarIntegrante() {
+    if (listaIntegrantes->currentRow() < 0) {
+        return;
+    }
+
+    const int indice = listaIntegrantes->currentRow();
+    integrantesGrupo.erase(integrantesGrupo.begin() + indice);
+    actualizarListaIntegrantes();
+}
+
 void VentanaInterprete::mostrarImagen(const QImage& imagen) {
     if (imagen.isNull()) {
         vistaImagen->setPixmap(QPixmap());
@@ -309,6 +462,16 @@ QString VentanaInterprete::obtenerFechaCreacion() const {
 
 QString VentanaInterprete::obtenerFechaSeparacion() const {
     return fechaSeparacionActiva->isChecked() ? campoFechaSeparacion->date().toString(Qt::ISODate) : QString();
+}
+
+std::vector<int> VentanaInterprete::obtenerIdsIntegrantes() const {
+    std::vector<int> ids;
+    ids.reserve(integrantesGrupo.size());
+
+    for (const DatosIntegrante& integrante : integrantesGrupo) {
+        ids.push_back(integrante.idPersona);
+    }
+    return ids;
 }
 
 int VentanaInterprete::obtenerTipo() const {
