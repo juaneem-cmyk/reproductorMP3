@@ -10,6 +10,7 @@
 #include <QMessageBox>
 #include <QToolButton>
 #include <QWidget>
+#include <vector>
 
 ControladorEditInterp::ControladorEditInterp(QToolButton *botonEditarInterprete,
     PanelCanciones *panelCanciones, QWidget *ventanaPadre)
@@ -51,6 +52,8 @@ void ControladorEditInterp::editarInterprete() {
     EdicionInterpretes editor(conexion);
     DatosPersona datosPersona;
     DatosGrupo datosGrupo;
+    std::vector<DatosIntegrante> integrantes;
+    std::vector<DatosIntegrante> personasDisponibles;
 
     if (!editor.obtenerPersona(cancion.idInterprete, datosPersona, mensajeError)) {
         QMessageBox::critical(ventanaPadre, "Error al consultar intérprete",
@@ -63,7 +66,19 @@ void ControladorEditInterp::editarInterprete() {
             QString::fromStdString(mensajeError));
         return;
     }
-    VentanaInterprete ventana(cancion, datosPersona, datosGrupo, ventanaPadre);
+
+    if (!editor.obtenerIntegrantes(cancion.idInterprete, integrantes, mensajeError)) {
+        QMessageBox::critical(ventanaPadre, "Error al consultar integrantes",
+            QString::fromStdString(mensajeError));
+        return;
+    }
+
+    if (!editor.obtenerPersonasDisponibles(personasDisponibles, mensajeError)) {
+        QMessageBox::critical(ventanaPadre, "Error al consultar personas",
+            QString::fromStdString(mensajeError));
+        return;
+    }
+    VentanaInterprete ventana(cancion, datosPersona, datosGrupo, integrantes, personasDisponibles, ventanaPadre);
 
     if (ventana.exec() != QDialog::Accepted) {
         return;
@@ -85,6 +100,7 @@ void ControladorEditInterp::editarInterprete() {
         ventana.obtenerTipo(),
         nuevosDatosPersona,
         nuevosDatosGrupo,
+        ventana.obtenerIdsIntegrantes(),
         idInterpreteActualizado,
         mensajeError
     );

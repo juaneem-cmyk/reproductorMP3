@@ -3,6 +3,7 @@
 #include <cctype>
 #include <memory>
 #include <sqlite3.h>
+#include <utility>
 
 namespace {
 using SentenciaSQLite = std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)>;
@@ -168,9 +169,106 @@ bool EdicionInterpretes::obtenerGrupo(int idInterprete, DatosGrupo& datos, std::
     return true;
 }
 
+// Función para obtener los integrantes que siguen registrados como personas
+bool EdicionInterpretes::obtenerIntegrantes(int idGrupo,
+    std::vector<DatosIntegrante>& integrantes, std::string& mensajeError) const {
+    mensajeError.clear();
+    integrantes.clear();
+
+    if (!conexion.estaAbierta()) {
+        mensajeError = "No hay una conexión abierta con SQLite.";
+        return false;
+    }
+
+    if (idGrupo <= 0) {
+        mensajeError = "El identificador del grupo no es válido.";
+        return false;
+    }
+    sqlite3* baseDatos = conexion.obtenerManejador();
+    SentenciaSQLite sentencia(nullptr, &sqlite3_finalize);
+
+    const char* consulta =
+        "SELECT pe.id_person, COALESCE(NULLIF(trim(p.name), ''), "
+        "NULLIF(trim(pe.stage_name), ''), NULLIF(trim(pe.real_name), ''), 'Sin nombre') "
+        "FROM in_group AS ig "
+        "INNER JOIN persons AS pe ON pe.id_person = ig.id_person "
+        "INNER JOIN performers AS p ON p.id_performer = pe.id_person "
+        "WHERE ig.id_group = ? AND p.id_type = 0 "
+        "ORDER BY p.name COLLATE NOCASE;";
+
+    if (!preparar(baseDatos, consulta, sentencia, mensajeError)) {
+        return false;
+    }
+    int codigo = sqlite3_bind_int(sentencia.get(), 1, idGrupo);
+
+    if (codigo != SQLITE_OK) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+        return false;
+    }
+
+    while ((codigo = sqlite3_step(sentencia.get())) == SQLITE_ROW) {
+        DatosIntegrante integrante;
+        integrante.idPersona = sqlite3_column_int(sentencia.get(), 0);
+        const unsigned char* nombre = sqlite3_column_text(sentencia.get(), 1);
+        integrante.nombre = nombre == nullptr ? std::string()
+            : std::string(reinterpret_cast<const char*>(nombre));
+        integrantes.push_back(std::move(integrante));
+    }
+
+    if (codigo != SQLITE_DONE) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+        integrantes.clear();
+        return false;
+    }
+    return true;
+}
+
+// Función para obtener únicamente las personas registradas que pueden agregarse a un grupo
+bool EdicionInterpretes::obtenerPersonasDisponibles(
+    std::vector<DatosIntegrante>& personas, std::string& mensajeError) const {
+    mensajeError.clear();
+    personas.clear();
+
+    if (!conexion.estaAbierta()) {
+        mensajeError = "No hay una conexión abierta con SQLite.";
+        return false;
+    }
+    sqlite3* baseDatos = conexion.obtenerManejador();
+    SentenciaSQLite sentencia(nullptr, &sqlite3_finalize);
+    const char* consulta =
+        "SELECT pe.id_person, COALESCE(NULLIF(trim(p.name), ''), "
+        "NULLIF(trim(pe.stage_name), ''), NULLIF(trim(pe.real_name), ''), 'Sin nombre') "
+        "FROM performers AS p "
+        "INNER JOIN persons AS pe ON pe.id_person = p.id_performer "
+        "WHERE p.id_type = 0 "
+        "ORDER BY p.name COLLATE NOCASE;";
+
+    if (!preparar(baseDatos, consulta, sentencia, mensajeError)) {
+        return false;
+    }
+
+    int codigo = SQLITE_OK;
+    while ((codigo = sqlite3_step(sentencia.get())) == SQLITE_ROW) {
+        DatosIntegrante persona;
+        persona.idPersona = sqlite3_column_int(sentencia.get(), 0);
+        const unsigned char* nombre = sqlite3_column_text(sentencia.get(), 1);
+        persona.nombre = nombre == nullptr ? std::string()
+            : std::string(reinterpret_cast<const char*>(nombre));
+        personas.push_back(std::move(persona));
+    }
+
+    if (codigo != SQLITE_DONE) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+        personas.clear();
+        return false;
+    }
+    return true;
+}
+
 bool EdicionInterpretes::actualizarInterprete(int idInterprete, int idRola,
     const std::string& nombre, int idTipo, const DatosPersona& datosPersona,
-    const DatosGrupo& datosGrupo, int& idInterpreteActualizado, std::string& mensajeError) const {
+    const DatosGrupo& datosGrupo, const std::vector<int>& integrantes,
+    int& idInterpreteActualizado, std::string& mensajeError) const {
     mensajeError.clear();
     idInterpreteActualizado = 0;
 
@@ -424,6 +522,59 @@ bool EdicionInterpretes::actualizarInterprete(int idInterprete, int idRola,
         if (sqlite3_step(guardarGrupo.get()) != SQLITE_DONE) {
             mensajeError = sqlite3_errmsg(baseDatos);
             return revertir();
+        }
+
+        // Actualizar las relaciones visibles sin borrar integrantes que ya no estén clasificados como personas
+        SentenciaSQLite quitarIntegrantes(nullptr, &sqlite3_finalize);
+        const char* eliminacion =
+            "DELETE FROM in_group "
+            "WHERE id_group = ? AND id_person IN ("
+            "SELECT pe.id_person FROM persons AS pe "
+            "INNER JOIN performers AS p ON p.id_performer = pe.id_person "
+            "WHERE p.id_type = 0);";
+
+        if (!preparar(baseDatos, eliminacion, quitarIntegrantes, mensajeError)) {
+            return revertir();
+        }
+        codigo = sqlite3_bind_int(quitarIntegrantes.get(), 1, idInterpreteActualizado);
+
+        if (codigo != SQLITE_OK || sqlite3_step(quitarIntegrantes.get()) != SQLITE_DONE) {
+            mensajeError = sqlite3_errmsg(baseDatos);
+            return revertir();
+        }
+
+        // Insertar únicamente personas que sigan registradas con tipo Persona
+        SentenciaSQLite agregarIntegrante(nullptr, &sqlite3_finalize);
+
+        const char* insercionIntegrante =
+            "INSERT INTO in_group (id_person, id_group) "
+            "SELECT pe.id_person, ? FROM persons AS pe "
+            "INNER JOIN performers AS p ON p.id_performer = pe.id_person "
+            "WHERE pe.id_person = ? AND p.id_type = 0;";
+
+        if (!preparar(baseDatos, insercionIntegrante, agregarIntegrante, mensajeError)) {
+            return revertir();
+        }
+
+        // Insertar cada integrante seleccionado, si ya no es persona se omite
+        for (int idPersona : integrantes) {
+            sqlite3_reset(agregarIntegrante.get());
+            sqlite3_clear_bindings(agregarIntegrante.get());
+            codigo = sqlite3_bind_int(agregarIntegrante.get(), 1, idInterpreteActualizado);
+
+            if (codigo == SQLITE_OK) {
+                codigo = sqlite3_bind_int(agregarIntegrante.get(), 2, idPersona);
+            }
+
+            if (codigo != SQLITE_OK || sqlite3_step(agregarIntegrante.get()) != SQLITE_DONE) {
+                mensajeError = sqlite3_errmsg(baseDatos);
+                return revertir();
+            }
+
+            if (sqlite3_changes(baseDatos) != 1) {
+                mensajeError = "Uno de los integrantes seleccionados ya no está registrado como persona.";
+                return revertir();
+            }
         }
     }
 
