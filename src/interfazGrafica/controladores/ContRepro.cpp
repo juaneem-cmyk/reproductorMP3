@@ -11,6 +11,7 @@
 #include <QModelIndex>
 #include <QPushButton>
 #include <QSlider>
+#include <QToolButton>
 #include <QTableView>
 
 ControladorRepUI::ControladorRepUI(PanelControles *panelControles, PanelAlbum *panelAlbum,
@@ -49,9 +50,19 @@ void ControladorRepUI::conectarControles() {
     // Control de volumen
     QSlider *controlVolumen = panelControles->obtenerControlVolumen();
     controlador->establecerVolumen(controlVolumen->value() / 100.0f);
+    panelControles->establecerEstadoVolumen(controlador->estaSilenciado(), controlVolumen->value());
 
+    // Silenciar o restaurar el sonido sin alterar el volumen del deslizador
+    connect(panelControles->obtenerBotonVolumen(), &QToolButton::clicked, this, [this, controlVolumen]() {
+            bool silenciado = !controlador->estaSilenciado();
+            controlador->establecerSilenciado(silenciado);
+            panelControles->establecerEstadoVolumen(silenciado, controlVolumen->value());
+        });
+
+    // Actualizar el volumen y el icono cuando se mueve el deslizador
     connect(controlVolumen, &QSlider::valueChanged, this, [this](int volumen) {
         controlador->establecerVolumen(volumen / 100.0f);
+        panelControles->establecerEstadoVolumen(controlador->estaSilenciado(), volumen);
     });
 
     // Actualizar el tiempo de reproducción

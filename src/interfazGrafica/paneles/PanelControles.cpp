@@ -96,14 +96,13 @@ PanelControles::PanelControles(QWidget *parent) : QWidget(parent) {
 // Actualizar el tiempo de reproducción
 void PanelControles::actualizarTiempo(qint64 posicion, qint64 duracion) {
 
-    // Mantener la barra sincronizada con la posición del reproductor
+    // Mantener la barra sincronizada con la posición del reproductor.
     if (duracion > 0) {
         barraProgreso->setEnabled(true);
 
         // No mover el control mientras el usuario está buscando otra posición
         if (!barraProgreso->isSliderDown()) {
-            int valor = static_cast<int>(static_cast<double>(posicion) 
-            * barraProgreso->maximum() / duracion
+            int valor = static_cast<int>(static_cast<double>(posicion) * barraProgreso->maximum() / duracion
             );
             barraProgreso->setValue(valor);
         }
@@ -139,6 +138,14 @@ void PanelControles::establecerEstadoReproduccion(bool reproduciendo) {
     }
 }
 
+// Actualizar el icono y la ayuda del control de volumen
+void PanelControles::establecerEstadoVolumen(bool silenciado, int volumen) {
+    bool sinSonido = silenciado || volumen == 0;
+    QStyle::StandardPixmap icono = sinSonido ? QStyle::SP_MediaVolumeMuted : QStyle::SP_MediaVolume;
+    botonVolumen->setIcon(style()->standardIcon(icono));
+    botonVolumen->setToolTip(silenciado ? "Activar sonido" : "Silenciar");
+}
+
 QPushButton *PanelControles::obtenerBotonAnterior() const {
     return botonAnterior;
 }
@@ -157,4 +164,8 @@ QSlider *PanelControles::obtenerBarraProgreso() const {
 
 QSlider *PanelControles::obtenerControlVolumen() const {
     return controlVolumen;
+}
+
+QToolButton *PanelControles::obtenerBotonVolumen() const {
+    return botonVolumen;
 }

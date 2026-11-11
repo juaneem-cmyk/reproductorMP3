@@ -21,6 +21,8 @@ public:
 
     // Control de volumen
     void establecerVolumen(float volumen);
+    void establecerSilenciado(bool silenciado);
+    bool estaSilenciado() const;
 
     // Información de reproducción
     qint64 obtenerPosicion() const;

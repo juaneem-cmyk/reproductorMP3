@@ -44,6 +44,16 @@ void ControladorReproduccion::establecerVolumen(float volumen) {
     salidaAudio->setVolume(volumen);
 }
 
+// Silenciar sin modificar el volumen seleccionado
+void ControladorReproduccion::establecerSilenciado(bool silenciado) {
+    salidaAudio->setMuted(silenciado);
+}
+
+// Consultar el estado actual de silencio
+bool ControladorReproduccion::estaSilenciado() const {
+    return salidaAudio->isMuted();
+}
+
 // Información de reproducción
 qint64 ControladorReproduccion::obtenerPosicion() const {
     return reproductor->position();
