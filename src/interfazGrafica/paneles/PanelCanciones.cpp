@@ -2,11 +2,56 @@
 #include "../modelos/Canciones.h"
 #include <QVBoxLayout>
 #include <QTableView>
+#include <QListView>
+#include <QStackedWidget>
 #include <QHeaderView>
 #include <QSortFilterProxyModel>
 #include <QItemSelectionModel>
 #include <QSize>
 #include <QFontMetrics>
+#include <QEvent>
+
+// Centra el conjunto de portadas sin modificar el tamaño ni la separación que ya tienen
+class GaleriaCentrada : public QListView {
+public:
+    explicit GaleriaCentrada(QWidget *parent = nullptr) : QListView(parent) {
+        // La ventana también cambia cuando aparece o desaparece la barra de desplazamiento
+        viewport()->installEventFilter(this);
+    }
+
+protected:
+    bool eventFilter(QObject *objeto, QEvent *evento) override {
+        if (objeto == viewport() && evento->type() == QEvent::Resize) {
+            ajustarMargenHorizontal();
+        }
+        return QListView::eventFilter(objeto, evento);
+    }
+
+private:
+    void ajustarMargenHorizontal() {
+        constexpr int ANCHO_CELDA = 190;
+        constexpr int ESPACIADO = 10;
+        constexpr int ANCHO_PASO = ANCHO_CELDA + ESPACIADO;
+
+        // Recupera el ancho disponible antes de aplicar los márgenes propios
+        const int anchoDisponible = viewport()->width() + 2 * margenHorizontal;
+        if (anchoDisponible <= 0) {
+            return;
+        }
+
+        // QListView también reserva el espaciado entre celdas
+        const int columnas = qMax(1, (anchoDisponible + ESPACIADO) / ANCHO_PASO);
+        const int anchoOcupado = columnas * ANCHO_CELDA + (columnas - 1) * ESPACIADO;
+        const int nuevoMargen = qMax(0, (anchoDisponible - anchoOcupado) / 2);
+
+        if (nuevoMargen != margenHorizontal) {
+            margenHorizontal = nuevoMargen;
+            setViewportMargins(margenHorizontal, 0, margenHorizontal, 0);
+        }
+    }
+
+    int margenHorizontal = 0;
+};
 
 PanelCanciones::PanelCanciones(QWidget *parent) : QWidget(parent) {
     setObjectName("panelDerecho");
@@ -26,9 +71,36 @@ PanelCanciones::PanelCanciones(QWidget *parent) : QWidget(parent) {
     filtroCanciones->setFilterKeyColumn(0);
     filtroCanciones->setFilterCaseSensitivity(Qt::CaseInsensitive);
 
-    // Crear la tabla
+    // Crear la tabla de canciones
     tablaCanciones = new QTableView(this);
     tablaCanciones->setModel(filtroCanciones);
+
+    // Crear la vista de galería
+    galeriaCanciones = new GaleriaCentrada(this);
+    galeriaCanciones->setModel(filtroCanciones);
+    galeriaCanciones->setSelectionMode(QAbstractItemView::SingleSelection);
+    galeriaCanciones->setSelectionBehavior(QAbstractItemView::SelectItems);
+    galeriaCanciones->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    galeriaCanciones->setViewMode(QListView::IconMode);
+    galeriaCanciones->setFlow(QListView::LeftToRight);
+    galeriaCanciones->setWrapping(true);
+    galeriaCanciones->setResizeMode(QListView::Adjust);
+    galeriaCanciones->setMovement(QListView::Static);
+    galeriaCanciones->setSpacing(10);
+    galeriaCanciones->setGridSize(QSize(190, 226));
+    galeriaCanciones->setIconSize(QSize(160, 160));
+    galeriaCanciones->setUniformItemSizes(true);
+    galeriaCanciones->setWordWrap(true);
+    galeriaCanciones->setTextElideMode(Qt::ElideRight);
+
+    // Ambas vistas comparten la selección para conservar edición y reproducción
+    galeriaCanciones->setSelectionModel(tablaCanciones->selectionModel());
+
+    // Alternar entre tabla y galería sin duplicar el modelo ni la búsqueda
+    vistasCanciones = new QStackedWidget(this);
+    vistasCanciones->addWidget(tablaCanciones);
+    vistasCanciones->addWidget(galeriaCanciones);
+    vistasCanciones->setCurrentWidget(tablaCanciones);
 
     // Configuración de la tabla
     tablaCanciones->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -62,8 +134,8 @@ PanelCanciones::PanelCanciones(QWidget *parent) : QWidget(parent) {
     encabezado->setDefaultAlignment(Qt::AlignCenter);
     tablaCanciones->verticalHeader()->setDefaultSectionSize(48);
 
-    // Agregar tabla al panel
-    layoutPrincipal->addWidget(tablaCanciones);
+    // Agregar ambas vistas al panel
+    layoutPrincipal->addWidget(vistasCanciones);
 
     // Estilos de la tabla
     tablaCanciones->setStyleSheet(R"(
@@ -85,10 +157,58 @@ PanelCanciones::PanelCanciones(QWidget *parent) : QWidget(parent) {
             font-weight: bold;
         }
     )");
+
+    // Estilo de la galería de portadas
+    galeriaCanciones->setStyleSheet(R"(
+        QListView {
+            background-color: #292F23;
+            color: #E6E5D7;
+            border: none;
+            font-size: 13px;
+            outline: none;
+        }
+        QListView::item {
+            padding: 5px;
+            border-radius: 5px;
+        }
+        QListView::item:selected {
+            background-color: #5E873B;
+            color: #FFFFFF;
+        }
+        QListView::item:hover {
+            background-color: #39452E;
+        }
+    )");
 }
 
 QTableView *PanelCanciones::obtenerTabla() const {
     return tablaCanciones;
+}
+
+QListView *PanelCanciones::obtenerGaleria() const {
+    return galeriaCanciones;
+}
+
+void PanelCanciones::establecerVistaGaleria(bool activa) {
+    vistasCanciones->setCurrentWidget(activa ? static_cast<QWidget *>(galeriaCanciones)
+    : static_cast<QWidget *>(tablaCanciones));
+}
+
+void PanelCanciones::seleccionarFila(int fila) {
+    QModelIndex indice = filtroCanciones->index(fila, 0);
+
+    if (!indice.isValid()) {
+        return;
+    }
+
+    // Seleccionar la fila completa también en la tabla oculta
+    tablaCanciones->selectRow(fila);
+
+    if (vistasCanciones->currentWidget() == galeriaCanciones) {
+        galeriaCanciones->scrollTo(indice);
+    } else {
+        tablaCanciones->scrollTo(indice);
+    }
 }
 
 QString PanelCanciones::obtenerRutaCancion(int fila) const {
@@ -102,7 +222,7 @@ QString PanelCanciones::obtenerRutaCancion(int fila) const {
 }
 
 bool PanelCanciones::CancionSelect(CancionVista &cancion) const {
-    QModelIndexList seleccion = tablaCanciones->selectionModel()->selectedRows();
+    QModelIndexList seleccion = tablaCanciones->selectionModel()->selectedIndexes();
 
     if (seleccion.isEmpty()) {
         return false;

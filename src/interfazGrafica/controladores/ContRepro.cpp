@@ -13,6 +13,7 @@
 #include <QSlider>
 #include <QToolButton>
 #include <QTableView>
+#include <QListView>
 
 ControladorRepUI::ControladorRepUI(PanelControles *panelControles, PanelAlbum *panelAlbum,
     PanelCanciones *panelCanciones, QWidget *ventanaPadre)
@@ -24,6 +25,12 @@ ControladorRepUI::ControladorRepUI(PanelControles *panelControles, PanelAlbum *p
 void ControladorRepUI::conectarControles() {
     // Doble clic para reproducir
     connect(panelCanciones->obtenerTabla(), &QTableView::doubleClicked, this, [this](const QModelIndex& indice) {
+            reproducirFila(indice.row());
+        }
+    );
+
+    // Doble clic sobre una portada para reproducir la canción
+    connect(panelCanciones->obtenerGaleria(), &QListView::doubleClicked, this, [this](const QModelIndex& indice) {
             reproducirFila(indice.row());
         }
     );
@@ -120,9 +127,7 @@ void ControladorRepUI::reproducirFila(int fila) {
     filaActual = fila;
 
     // Seleccionar la canción que se está reproduciendo
-    QTableView *tabla = panelCanciones->obtenerTabla();
-    tabla->selectRow(fila);
-    tabla->scrollTo(tabla->model()->index(fila, 0));
+    panelCanciones->seleccionarFila(fila);
 
     QString ruta = panelCanciones->obtenerRutaCancion(fila);
 

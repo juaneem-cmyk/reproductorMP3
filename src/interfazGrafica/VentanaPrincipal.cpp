@@ -56,6 +56,25 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
         panelDerecho, &PanelCanciones::establecerTextoBusqueda
     );
 
+    // La galería ocupa toda el área central y la vista de lista conserva los dos paneles
+    connect(barraHerramientas->obtenerBotonLista(), &QToolButton::clicked, this,
+        [panelIzquierdo, panelDerecho, layoutPrincipal]() {
+            panelDerecho->establecerVistaGaleria(false);
+            panelIzquierdo->show();
+            layoutPrincipal->setStretch(0, 2);
+            layoutPrincipal->setStretch(1, 3);
+        }
+    );
+
+    connect(barraHerramientas->obtenerBotonGaleria(), &QToolButton::clicked, this,
+        [panelIzquierdo, panelDerecho, layoutPrincipal]() {
+            panelDerecho->establecerVistaGaleria(true);
+            panelIzquierdo->hide();
+            layoutPrincipal->setStretch(0, 0);
+            layoutPrincipal->setStretch(1, 1);
+        }
+    );
+
     // Botón para editar la canción seleccionada
     QToolButton *botonEditarCancion = barraHerramientas->obtenerBotonEditarCancion();
     QToolButton *botonEditarInterprete = barraHerramientas->obtenerBotonEditarInterprete();
@@ -66,7 +85,7 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
 
     // Habilitar o deshabilitar los botones según la selección
     auto actualizarEstadoEdicion = [botonEditarCancion, botonEditarInterprete, panelDerecho]() {
-        bool haySeleccion = !panelDerecho->obtenerTabla()->selectionModel()->selectedRows().isEmpty();
+        bool haySeleccion = !panelDerecho->obtenerTabla()->selectionModel()->selectedIndexes().isEmpty();
         botonEditarCancion->setEnabled(haySeleccion);
         botonEditarInterprete->setEnabled(haySeleccion);
     };

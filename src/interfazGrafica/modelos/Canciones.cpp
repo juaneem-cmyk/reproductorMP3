@@ -9,7 +9,7 @@
 #include <QPixmap>
 
 namespace {
-constexpr int TAMANO_PORTADA = 36;
+constexpr int TAMANO_PORTADA = 256;
 
 // Reserva el espacio de la portada sin dibujar nada cuando no hay imagen
 QImage crearPortadaVacia() {
@@ -18,14 +18,14 @@ QImage crearPortadaVacia() {
     return imagen;
 }
 
-// Recorta las portadas a un cuadrado uniforme para que todas las filas midan igual
+// Recorta las portadas a un cuadrado de buena resolución para ambas vistas
 QImage ajustarPortada(const QImage &original) {
     if (original.isNull()) {
         return crearPortadaVacia();
     }
 
-    QImage escalada = original.scaled(TAMANO_PORTADA, TAMANO_PORTADA, 
-    Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+    QImage escalada = original.scaled(TAMANO_PORTADA, TAMANO_PORTADA,
+        Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
     int x = (escalada.width() - TAMANO_PORTADA) / 2;
     int y = (escalada.height() - TAMANO_PORTADA) / 2;
     return escalada.copy(x, y, TAMANO_PORTADA, TAMANO_PORTADA);
@@ -132,6 +132,21 @@ QVariant Canciones::data(const QModelIndex &indice, int rol) const {
     if (rol == Qt::DecorationRole && indice.column() == 0
     && indice.row() < static_cast<int>(portadas.size())) {
         return portadas[indice.row()];
+    }
+
+    if (rol == Qt::ToolTipRole) {
+        QString informacion = cancion.titulo;
+
+        if (!cancion.artista.isEmpty()) {
+            informacion += "\n" + cancion.artista;
+        }
+        if (!cancion.album.isEmpty()) {
+            informacion += "\n" + cancion.album;
+        }
+        if (cancion.year > 0) {
+            informacion += " · " + QString::number(cancion.year);
+        }
+        return informacion;
     }
 
     if (rol == Qt::TextAlignmentRole && (indice.column() == 3 || indice.column() == 4)) {
