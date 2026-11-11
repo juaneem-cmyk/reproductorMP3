@@ -2,6 +2,8 @@
 #include "../paneles/PanelAlbum.h"
 #include "../paneles/PanelCanciones.h"
 #include "../paneles/PanelControles.h"
+#include "../modelos/Canciones.h"
+#include "../servicios/GestorImagenes.h"
 #include "../reproduccion/ControladoRep.h"
 #include "LectorMetadatos.h"
 #include <QImage>
@@ -98,22 +100,36 @@ void ControladorRepUI::reproducirFila(int fila) {
     tabla->scrollTo(tabla->model()->index(fila, 0));
 
     QString ruta = panelCanciones->obtenerRutaCancion(fila);
+
+    if (ruta.isEmpty()) {
+        return;
+    }
     controlador->cargarCancion(ruta);
     controlador->reproducir();
 
-    LectorMetadatosMP3 lector;
-    MetadatosMusicales metadatos;
-    std::string error;
+    // Priorizar la portada personalizada y, si no existe, usar la incrustada en el MP3
+    QImage imagen;
+    CancionVista cancionSeleccionada;
 
-    // Leer los metadatos y actualizar la portada
-    if (lector.leerArchivo(ruta.toStdString(), metadatos, error)) {
-        if (!metadatos.portadaFrontal.datos.empty()) {
-            QImage imagen;
+    if (panelCanciones->CancionSelect(cancionSeleccionada)) {
+        imagen = GestorImagenes::cargarCancion(cancionSeleccionada.idRola);
+    }
+
+    if (imagen.isNull()) {
+        LectorMetadatosMP3 lector;
+        MetadatosMusicales metadatos;
+        std::string error;
+
+        if (lector.leerArchivo(ruta.toStdString(), metadatos, error)
+            && !metadatos.portadaFrontal.datos.empty()) {
             imagen.loadFromData(metadatos.portadaFrontal.datos.data(),
-            static_cast<int>(metadatos.portadaFrontal.datos.size()));
-            panelAlbum->establecerPortada(imagen);
-        } else {
-            panelAlbum->limpiarPortada();
+                static_cast<int>(metadatos.portadaFrontal.datos.size()));
         }
+    }
+
+    if (imagen.isNull()) {
+        panelAlbum->limpiarPortada();
+    } else {
+        panelAlbum->establecerPortada(imagen);
     }
 }
