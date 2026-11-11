@@ -5,6 +5,8 @@
 #include <QHeaderView>
 #include <QSortFilterProxyModel>
 #include <QItemSelectionModel>
+#include <QSize>
+#include <QFontMetrics>
 
 PanelCanciones::PanelCanciones(QWidget *parent) : QWidget(parent) {
     setObjectName("panelDerecho");
@@ -34,17 +36,31 @@ PanelCanciones::PanelCanciones(QWidget *parent) : QWidget(parent) {
     tablaCanciones->setEditTriggers(QAbstractItemView::NoEditTriggers);
     tablaCanciones->setAlternatingRowColors(true);
     tablaCanciones->setShowGrid(false);
+    tablaCanciones->setIconSize(QSize(36, 36));
     tablaCanciones->verticalHeader()->setVisible(false);
 
     // Ajustar columnas
     QHeaderView *encabezado = tablaCanciones->horizontalHeader();
     encabezado->setSectionResizeMode(0, QHeaderView::Stretch);
-    encabezado->setSectionResizeMode(1, QHeaderView::Stretch);
-    encabezado->setSectionResizeMode(2, QHeaderView::Stretch);
+    encabezado->setSectionResizeMode(1, QHeaderView::Interactive);
+    encabezado->setSectionResizeMode(2, QHeaderView::Interactive);
+    tablaCanciones->setColumnWidth(1, 135);
+    tablaCanciones->setColumnWidth(2, 120);
     encabezado->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    encabezado->setSectionResizeMode(4, QHeaderView::ResizeToContents);
+
+    // Ajustar la columna de duración para que tenga un ancho fijo suficiente para mostrar "00:00"
+    QFont fuenteEncabezado = encabezado->font();
+    fuenteEncabezado.setBold(true);
+    QFontMetrics medidasDuracion(fuenteEncabezado);
+    int anchoDuracion = medidasDuracion.horizontalAdvance("Duración");
+    int anchoTiempo = medidasDuracion.horizontalAdvance("00:00");
+    if (anchoTiempo > anchoDuracion) {
+        anchoDuracion = anchoTiempo;
+    }
+    encabezado->setSectionResizeMode(4, QHeaderView::Fixed);
+    tablaCanciones->setColumnWidth(4, anchoDuracion + 20);
     encabezado->setDefaultAlignment(Qt::AlignCenter);
-    tablaCanciones->verticalHeader()->setDefaultSectionSize(42);
+    tablaCanciones->verticalHeader()->setDefaultSectionSize(48);
 
     // Agregar tabla al panel
     layoutPrincipal->addWidget(tablaCanciones);

@@ -3,6 +3,7 @@
 
 #include <QAbstractTableModel>
 #include <QString>
+#include <QIcon>
 #include <vector>
 
 struct CancionVista {
@@ -34,6 +35,7 @@ public:
 
 private:    
     std::vector<CancionVista> canciones;
+    std::vector<QIcon> portadas;
 
     void cargarCanciones();
 };

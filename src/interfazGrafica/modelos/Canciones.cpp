@@ -3,7 +3,34 @@
 #include "Rutas.h"
 #include "ConsultaRolas.h"
 #include "LectorMetadatos.h"
+#include "../servicios/GestorImagenes.h"
 #include <QDebug>
+#include <QImage>
+#include <QPixmap>
+
+namespace {
+constexpr int TAMANO_PORTADA = 36;
+
+// Reserva el espacio de la portada sin dibujar nada cuando no hay imagen
+QImage crearPortadaVacia() {
+    QImage imagen(TAMANO_PORTADA, TAMANO_PORTADA, QImage::Format_ARGB32);
+    imagen.fill(Qt::transparent);
+    return imagen;
+}
+
+// Recorta las portadas a un cuadrado uniforme para que todas las filas midan igual
+QImage ajustarPortada(const QImage &original) {
+    if (original.isNull()) {
+        return crearPortadaVacia();
+    }
+
+    QImage escalada = original.scaled(TAMANO_PORTADA, TAMANO_PORTADA, 
+    Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+    int x = (escalada.width() - TAMANO_PORTADA) / 2;
+    int y = (escalada.height() - TAMANO_PORTADA) / 2;
+    return escalada.copy(x, y, TAMANO_PORTADA, TAMANO_PORTADA);
+}
+}
 
 Canciones::Canciones(QObject *parent) : QAbstractTableModel(parent) {
     cargarCanciones();
@@ -31,20 +58,33 @@ void Canciones::cargarCanciones() {
 
     // Transferimos los resultados al modelo de Qt
     canciones.reserve(resultados.size());
+    portadas.reserve(resultados.size());
     LectorMetadatosMP3 lector;
 
     for (const auto &cancion : resultados) {
         MetadatosMusicales metadatos;
         std::string errorLectura;
         QString duracion = "--:--";
+        // Priorizar la portada personalizada de la canción
+        QImage portada = GestorImagenes::cargarCancion(cancion.idRola);
 
-        // Intentamos leer la duración de la canción desde sus metadatos
+        // Intentamos leer la duración y, si hace falta, la portada incrustada del MP3
         if (lector.leerArchivo(cancion.ruta, metadatos, errorLectura)) {
             unsigned int segundos = metadatos.duracionSegundos;
             unsigned int minutos = segundos / 60;
             segundos %= 60;
             duracion = QString("%1:%2").arg(minutos).arg(segundos, 2, 10, QChar('0'));
+
+            if (portada.isNull() && !metadatos.portadaFrontal.datos.empty()) {
+                portada.loadFromData(metadatos.portadaFrontal.datos.data(),
+                static_cast<int>(metadatos.portadaFrontal.datos.size()));
+            }
         }
+
+        // Todas las filas reciben una miniatura cuadrada para mantener alineados los títulos
+        QImage portadaAjustada = ajustarPortada(portada);
+        portadas.emplace_back(QPixmap::fromImage(portadaAjustada));
+
         // Agregamos la canción al vector de canciones del modelo
         canciones.push_back({
             cancion.idRola,
@@ -86,6 +126,12 @@ QVariant Canciones::data(const QModelIndex &indice, int rol) const {
         return QString("%1 %2 %3 %4")
         .arg(cancion.titulo).arg(cancion.artista).arg(cancion.album)
         .arg(cancion.year > 0 ? QString::number(cancion.year) : QString());
+    }
+
+    // Mostrar la miniatura junto al título de cada canción
+    if (rol == Qt::DecorationRole && indice.column() == 0
+    && indice.row() < static_cast<int>(portadas.size())) {
+        return portadas[indice.row()];
     }
 
     if (rol == Qt::TextAlignmentRole && (indice.column() == 3 || indice.column() == 4)) {
@@ -154,6 +200,7 @@ bool Canciones::obtenerCancion(int fila, CancionVista &cancion) const {
 void Canciones::recargar() {
     beginResetModel();
     canciones.clear();
+    portadas.clear();
     cargarCanciones();
     endResetModel();
 }
