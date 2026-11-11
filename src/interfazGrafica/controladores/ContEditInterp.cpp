@@ -50,13 +50,20 @@ void ControladorEditInterp::editarInterprete() {
     }
     EdicionInterpretes editor(conexion);
     DatosPersona datosPersona;
+    DatosGrupo datosGrupo;
 
     if (!editor.obtenerPersona(cancion.idInterprete, datosPersona, mensajeError)) {
         QMessageBox::critical(ventanaPadre, "Error al consultar intérprete",
             QString::fromStdString(mensajeError));
         return;
     }
-    VentanaInterprete ventana(cancion, datosPersona, ventanaPadre);
+
+    if (!editor.obtenerGrupo(cancion.idInterprete, datosGrupo, mensajeError)) {
+        QMessageBox::critical(ventanaPadre, "Error al consultar grupo",
+            QString::fromStdString(mensajeError));
+        return;
+    }
+    VentanaInterprete ventana(cancion, datosPersona, datosGrupo, ventanaPadre);
 
     if (ventana.exec() != QDialog::Accepted) {
         return;
@@ -66,6 +73,10 @@ void ControladorEditInterp::editarInterprete() {
     nuevosDatosPersona.fechaNacimiento = ventana.obtenerFechaNacimiento().toStdString();
     nuevosDatosPersona.fechaFallecimiento = ventana.obtenerFechaFallecimiento().toStdString();
 
+    DatosGrupo nuevosDatosGrupo;
+    nuevosDatosGrupo.fechaCreacion = ventana.obtenerFechaCreacion().toStdString();
+    nuevosDatosGrupo.fechaSeparacion = ventana.obtenerFechaSeparacion().toStdString();
+
     int idInterpreteActualizado = 0;
     const bool actualizado = editor.actualizarInterprete(
         cancion.idInterprete,
@@ -73,6 +84,7 @@ void ControladorEditInterp::editarInterprete() {
         ventana.obtenerNombre().toStdString(),
         ventana.obtenerTipo(),
         nuevosDatosPersona,
+        nuevosDatosGrupo,
         idInterpreteActualizado,
         mensajeError
     );

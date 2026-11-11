@@ -10,6 +10,7 @@
 #include <QDialogButtonBox>
 #include <QFileDialog>
 #include <QFormLayout>
+#include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -49,8 +50,8 @@ QWidget* crearCampoFecha(QCheckBox *&activa, QDateEdit *&campo, QWidget *parent)
 }
 }
 
-VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPersona& datosPersona, 
-    QWidget *parent) : QDialog(parent) {
+VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPersona& datosPersona,
+    const DatosGrupo& datosGrupo, QWidget *parent) : QDialog(parent) {
     setWindowTitle("Editar intérprete");
     setMinimumWidth(430);
     setModal(true);
@@ -85,6 +86,17 @@ VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPer
     cargarFecha(datosPersona.fechaFallecimiento, fechaFallecimientoActiva, campoFechaFallecimiento);
     formularioPersona->addRow("Nacimiento:", filaNacimiento);
     formularioPersona->addRow("Fallecimiento:", filaFallecimiento);
+
+    // Datos específicos de un grupo
+    QGroupBox *informacionGrupo = new QGroupBox("Información del grupo", this);
+    seccionGrupo = informacionGrupo;
+    QFormLayout *formularioGrupo = new QFormLayout(informacionGrupo);
+    QWidget *filaCreacion = crearCampoFecha(fechaCreacionActiva, campoFechaCreacion, informacionGrupo);
+    QWidget *filaSeparacion = crearCampoFecha(fechaSeparacionActiva, campoFechaSeparacion, informacionGrupo);
+    cargarFecha(datosGrupo.fechaCreacion, fechaCreacionActiva, campoFechaCreacion);
+    cargarFecha(datosGrupo.fechaSeparacion, fechaSeparacionActiva, campoFechaSeparacion);
+    formularioGrupo->addRow("Fecha de creación:", filaCreacion);
+    formularioGrupo->addRow("Fecha de separación:", filaSeparacion);
 
     // Leer el marco APIC de tipo Artist de la canción seleccionada
     LectorMetadatosMP3 lector;
@@ -149,6 +161,7 @@ VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPer
 
     layoutPrincipal->addLayout(formulario);
     layoutPrincipal->addWidget(seccionPersona);
+    layoutPrincipal->addWidget(seccionGrupo);
     layoutPrincipal->addWidget(seccionImagen);
     layoutPrincipal->addWidget(informacion);
     layoutPrincipal->addWidget(botones);
@@ -212,6 +225,19 @@ void VentanaInterprete::guardarCambios() {
                 "el fallecimiento no puede ser anterior al nacimiento.");
             return;
         }
+    } else if (obtenerTipo() == 1) {
+        const QDate hoy = QDate::currentDate();
+        const bool creacionValida = !fechaCreacionActiva->isChecked() || campoFechaCreacion->date() <= hoy;
+        const bool separacionValida = !fechaSeparacionActiva->isChecked() || campoFechaSeparacion->date() <= hoy;
+        const bool ordenValido = !fechaCreacionActiva->isChecked() || !fechaSeparacionActiva->isChecked()
+        || campoFechaSeparacion->date() >= campoFechaCreacion->date();
+
+        if (!creacionValida || !separacionValida || !ordenValido) {
+            QMessageBox::warning(this, "Fechas inválidas",
+                "Comprueba las fechas: no pueden estar en el futuro y "
+                "la separación no puede ser anterior a la creación.");
+            return;
+        }
     }
     accept();
 }
@@ -244,8 +270,9 @@ void VentanaInterprete::restaurarImagenOriginal() {
 
 void VentanaInterprete::actualizarVisibilidadImagen() {
     const int tipo = campoTipo->currentData().toInt();
-    etiquetaNombre->setText(tipo == 0 ? "Nombre artístico:" : "Nombre:");
+    etiquetaNombre->setText(tipo == 0 ? "Nombre artístico:" : tipo == 1 ? "Nombre del grupo:" : "Nombre:");
     seccionPersona->setVisible(tipo == 0);
+    seccionGrupo->setVisible(tipo == 1);
     seccionImagen->setVisible(tipo != 2);
 }
 
@@ -274,6 +301,14 @@ QString VentanaInterprete::obtenerFechaNacimiento() const {
 
 QString VentanaInterprete::obtenerFechaFallecimiento() const {
     return fechaFallecimientoActiva->isChecked() ? campoFechaFallecimiento->date().toString(Qt::ISODate) : QString();
+}
+
+QString VentanaInterprete::obtenerFechaCreacion() const {
+    return fechaCreacionActiva->isChecked() ? campoFechaCreacion->date().toString(Qt::ISODate) : QString();
+}
+
+QString VentanaInterprete::obtenerFechaSeparacion() const {
+    return fechaSeparacionActiva->isChecked() ? campoFechaSeparacion->date().toString(Qt::ISODate) : QString();
 }
 
 int VentanaInterprete::obtenerTipo() const {

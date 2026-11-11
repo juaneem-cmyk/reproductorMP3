@@ -116,9 +116,61 @@ bool EdicionInterpretes::obtenerPersona(int idInterprete, DatosPersona& datos, s
     return true;
 }
 
+// Función para obtener los datos de un grupo a partir de su identificador
+bool EdicionInterpretes::obtenerGrupo(int idInterprete, DatosGrupo& datos, std::string& mensajeError) const {
+    mensajeError.clear();
+    datos = {};
+
+    if (!conexion.estaAbierta()) {
+        mensajeError = "No hay una conexión abierta con SQLite.";
+        return false;
+    }
+
+    if (idInterprete <= 0) {
+        mensajeError = "El identificador del intérprete no es válido.";
+        return false;
+    }
+    sqlite3* baseDatos = conexion.obtenerManejador();
+    SentenciaSQLite sentencia(nullptr, &sqlite3_finalize);
+    const char* consulta =
+        "SELECT g.start_date, g.end_date "
+        "FROM groups AS g "
+        "WHERE g.id_group = ?;";
+
+    if (!preparar(baseDatos, consulta, sentencia, mensajeError)) {
+        return false;
+    }
+    int codigo = sqlite3_bind_int(sentencia.get(), 1, idInterprete);
+
+    if (codigo != SQLITE_OK) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+        return false;
+    }
+    codigo = sqlite3_step(sentencia.get());
+
+    if (codigo == SQLITE_DONE) {
+        return true;
+    }
+
+    if (codigo != SQLITE_ROW) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+        return false;
+    }
+
+    const auto leerTexto = [sentencia = sentencia.get()](int columna) {
+        const unsigned char* texto = sqlite3_column_text(sentencia, columna);
+        return texto == nullptr ? std::string() : std::string(reinterpret_cast<const char*>(texto));
+    };
+
+    datos.fechaCreacion = leerTexto(0);
+    datos.fechaSeparacion = leerTexto(1);
+    mensajeError.clear();
+    return true;
+}
+
 bool EdicionInterpretes::actualizarInterprete(int idInterprete, int idRola,
     const std::string& nombre, int idTipo, const DatosPersona& datosPersona,
-    int& idInterpreteActualizado, std::string& mensajeError) const {
+    const DatosGrupo& datosGrupo, int& idInterpreteActualizado, std::string& mensajeError) const {
     mensajeError.clear();
     idInterpreteActualizado = 0;
 
@@ -329,6 +381,47 @@ bool EdicionInterpretes::actualizarInterprete(int idInterprete, int idRola,
         }
 
         if (sqlite3_step(guardarPersona.get()) != SQLITE_DONE) {
+            mensajeError = sqlite3_errmsg(baseDatos);
+            return revertir();
+        }
+    }
+
+    // Los datos del grupo utilizan el mismo identificador que performers
+    if (idTipo == 1) {
+        SentenciaSQLite guardarGrupo(nullptr, &sqlite3_finalize);
+        const char* insercion =
+            "INSERT INTO groups (id_group, name, start_date, end_date) "
+            "VALUES (?, ?, ?, ?) "
+            "ON CONFLICT(id_group) DO UPDATE SET "
+            "name = excluded.name, "
+            "start_date = excluded.start_date, "
+            "end_date = excluded.end_date;";
+
+        if (!preparar(baseDatos, insercion, guardarGrupo, mensajeError)) {
+            return revertir();
+        }
+        int codigo = sqlite3_bind_int(guardarGrupo.get(), 1, idInterpreteActualizado);
+
+        if (codigo == SQLITE_OK) {
+            codigo = sqlite3_bind_text(guardarGrupo.get(), 2, nombre.c_str(), -1, SQLITE_TRANSIENT);
+        }
+
+        if (codigo == SQLITE_OK) {
+            codigo = vincularTexto(baseDatos, guardarGrupo.get(), 3,
+                datosGrupo.fechaCreacion, mensajeError) ? SQLITE_OK : SQLITE_ERROR;
+        }
+
+        if (codigo == SQLITE_OK) {
+            codigo = vincularTexto(baseDatos, guardarGrupo.get(), 4,
+                datosGrupo.fechaSeparacion, mensajeError) ? SQLITE_OK : SQLITE_ERROR;
+        }
+
+        if (codigo != SQLITE_OK) {
+            if (mensajeError.empty()) mensajeError = sqlite3_errmsg(baseDatos);
+            return revertir();
+        }
+
+        if (sqlite3_step(guardarGrupo.get()) != SQLITE_DONE) {
             mensajeError = sqlite3_errmsg(baseDatos);
             return revertir();
         }

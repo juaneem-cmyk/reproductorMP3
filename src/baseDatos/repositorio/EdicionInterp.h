@@ -10,13 +10,19 @@ struct DatosPersona {
     std::string fechaFallecimiento;
 };
 
+struct DatosGrupo {
+    std::string fechaCreacion;
+    std::string fechaSeparacion;
+};
+
 class EdicionInterpretes {
 public:
     explicit EdicionInterpretes(ConexionSQLite& conexion);
     bool obtenerPersona(int idInterprete, DatosPersona& datos, std::string& mensajeError) const;
+    bool obtenerGrupo(int idInterprete, DatosGrupo& datos, std::string& mensajeError) const;
     bool actualizarInterprete(int idInterprete, int idRola,
         const std::string& nombre, int idTipo, const DatosPersona& datosPersona,
-        int& idInterpreteActualizado, std::string& mensajeError) const;
+        const DatosGrupo& datosGrupo, int& idInterpreteActualizado, std::string& mensajeError) const;
 
 private:
     ConexionSQLite& conexion;

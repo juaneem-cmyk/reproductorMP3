@@ -7,6 +7,7 @@
 
 struct CancionVista;
 struct DatosPersona;
+struct DatosGrupo;
 class QCheckBox;
 class QComboBox;
 class QDateEdit;
@@ -16,7 +17,8 @@ class QWidget;
 
 class VentanaInterprete : public QDialog {
 public:
-    explicit VentanaInterprete(const CancionVista& cancion, const DatosPersona& datosPersona, QWidget *parent = nullptr);
+    explicit VentanaInterprete(const CancionVista& cancion, const DatosPersona& datosPersona,
+        const DatosGrupo& datosGrupo, QWidget *parent = nullptr);
     int obtenerTipo() const;
     bool debeEliminarImagenPersonalizada() const;
 
@@ -24,6 +26,8 @@ public:
     QString obtenerNombreReal() const;
     QString obtenerFechaNacimiento() const;
     QString obtenerFechaFallecimiento() const;
+    QString obtenerFechaCreacion() const;
+    QString obtenerFechaSeparacion() const;
     QString obtenerRutaImagenSeleccionada() const;
 
 private:
@@ -33,11 +37,16 @@ private:
     QLabel *vistaImagen;
     QWidget *seccionImagen;
     QWidget *seccionPersona;
+    QWidget *seccionGrupo;
     QLineEdit *campoNombreReal;
     QCheckBox *fechaNacimientoActiva;
     QDateEdit *campoFechaNacimiento;
     QCheckBox *fechaFallecimientoActiva;
     QDateEdit *campoFechaFallecimiento;
+    QCheckBox *fechaCreacionActiva;
+    QDateEdit *campoFechaCreacion;
+    QCheckBox *fechaSeparacionActiva;
+    QDateEdit *campoFechaSeparacion;
     QImage imagenIncrustada;
     QString rutaImagenSeleccionada;
     
