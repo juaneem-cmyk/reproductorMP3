@@ -47,7 +47,10 @@ void ControladorRepUI::conectarControles() {
     });
 
     // Control de volumen
-    connect(panelControles->obtenerControlVolumen(), &QSlider::valueChanged, this, [this](int volumen) {
+    QSlider *controlVolumen = panelControles->obtenerControlVolumen();
+    controlador->establecerVolumen(controlVolumen->value() / 100.0f);
+
+    connect(controlVolumen, &QSlider::valueChanged, this, [this](int volumen) {
         controlador->establecerVolumen(volumen / 100.0f);
     });
 
@@ -72,7 +75,18 @@ void ControladorRepUI::conectarControles() {
         qint64 duracion = controlador->obtenerDuracion();
 
         if (duracion > 0) {
-            qint64 posicion = (duracion * valor) / 1000;
+            qint64 posicion = (duracion * valor) / panelControles->obtenerBarraProgreso()->maximum();
+            controlador->establecerPosicion(posicion);
+        }
+    });
+
+    // Aplicar también la posición final al soltar la barra
+    connect(panelControles->obtenerBarraProgreso(), &QSlider::sliderReleased, this, [this]() {
+        qint64 duracion = controlador->obtenerDuracion();
+        QSlider *barraProgreso = panelControles->obtenerBarraProgreso();
+
+        if (duracion > 0) {
+            qint64 posicion = (duracion * barraProgreso->value()) / barraProgreso->maximum();
             controlador->establecerPosicion(posicion);
         }
     });

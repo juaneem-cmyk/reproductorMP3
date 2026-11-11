@@ -96,6 +96,22 @@ PanelControles::PanelControles(QWidget *parent) : QWidget(parent) {
 // Actualizar el tiempo de reproducción
 void PanelControles::actualizarTiempo(qint64 posicion, qint64 duracion) {
 
+    // Mantener la barra sincronizada con la posición del reproductor
+    if (duracion > 0) {
+        barraProgreso->setEnabled(true);
+
+        // No mover el control mientras el usuario está buscando otra posición
+        if (!barraProgreso->isSliderDown()) {
+            int valor = static_cast<int>(static_cast<double>(posicion) 
+            * barraProgreso->maximum() / duracion
+            );
+            barraProgreso->setValue(valor);
+        }
+    } else {
+        barraProgreso->setEnabled(false);
+        barraProgreso->setValue(0);
+    }
+
     // Convertir milisegundos a segundos
     qint64 segundosActuales = posicion / 1000;
     qint64 segundosTotales = duracion / 1000;
