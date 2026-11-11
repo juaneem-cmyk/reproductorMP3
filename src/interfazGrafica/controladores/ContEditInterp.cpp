@@ -55,8 +55,17 @@ void ControladorEditInterp::editarInterprete() {
     std::vector<DatosIntegrante> integrantes;
     std::vector<DatosIntegrante> personasDisponibles;
 
+    // Obtener los datos del intérprete y del grupo, así como los integrantes y las personas disponibles
     if (!editor.obtenerPersona(cancion.idInterprete, datosPersona, mensajeError)) {
         QMessageBox::critical(ventanaPadre, "Error al consultar intérprete",
+            QString::fromStdString(mensajeError));
+        return;
+    }
+
+    // Reparar registros heredados: un grupo puede existir sin integrantes ni fechas
+    if (cancion.idTipoInterprete == 1
+        && !editor.asegurarRegistroGrupo(cancion.idInterprete, mensajeError)) {
+        QMessageBox::critical(ventanaPadre, "Error al consultar grupo",
             QString::fromStdString(mensajeError));
         return;
     }
@@ -67,6 +76,7 @@ void ControladorEditInterp::editarInterprete() {
         return;
     }
 
+    // Obtener los integrantes del grupo y las personas disponibles para agregar
     if (!editor.obtenerIntegrantes(cancion.idInterprete, integrantes, mensajeError)) {
         QMessageBox::critical(ventanaPadre, "Error al consultar integrantes",
             QString::fromStdString(mensajeError));

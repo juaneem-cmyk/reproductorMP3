@@ -26,6 +26,7 @@ public:
     explicit EdicionInterpretes(ConexionSQLite& conexion);
     bool obtenerPersona(int idInterprete, DatosPersona& datos, std::string& mensajeError) const;
     bool obtenerGrupo(int idInterprete, DatosGrupo& datos, std::string& mensajeError) const;
+    bool asegurarRegistroGrupo(int idInterprete, std::string& mensajeError) const;
     bool obtenerIntegrantes(int idGrupo, std::vector<DatosIntegrante>& integrantes, std::string& mensajeError) const;
     bool obtenerPersonasDisponibles(std::vector<DatosIntegrante>& personas, std::string& mensajeError) const;
     bool actualizarInterprete(int idInterprete, int idRola,

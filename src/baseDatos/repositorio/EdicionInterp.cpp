@@ -169,6 +169,73 @@ bool EdicionInterpretes::obtenerGrupo(int idInterprete, DatosGrupo& datos, std::
     return true;
 }
 
+// Repara grupos antiguos que tienen performer pero todavía no tienen ficha general
+bool EdicionInterpretes::asegurarRegistroGrupo(int idInterprete, std::string& mensajeError) const {
+    mensajeError.clear();
+
+    if (!conexion.estaAbierta()) {
+        mensajeError = "No hay una conexión abierta con SQLite.";
+        return false;
+    }
+
+    if (idInterprete <= 0) {
+        mensajeError = "El identificador del grupo no es válido.";
+        return false;
+    }
+    sqlite3* baseDatos = conexion.obtenerManejador();
+    SentenciaSQLite insertar(nullptr, &sqlite3_finalize);
+    const char* insercion =
+        "INSERT INTO groups (id_group, name) "
+        "SELECT p.id_performer, p.name "
+        "FROM performers AS p "
+        "WHERE p.id_performer = ? AND p.id_type = 1 "
+        "ON CONFLICT(id_group) DO NOTHING;";
+
+    if (!preparar(baseDatos, insercion, insertar, mensajeError)) {
+        return false;
+    }
+    int codigo = sqlite3_bind_int(insertar.get(), 1, idInterprete);
+
+    if (codigo != SQLITE_OK) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+        return false;
+    }
+
+    if (sqlite3_step(insertar.get()) != SQLITE_DONE) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+        return false;
+    }
+
+    // Confirmar que el intérprete sigue clasificado como grupo y que su ficha existe
+    SentenciaSQLite consultar(nullptr, &sqlite3_finalize);
+    const char* consulta =
+        "SELECT 1 FROM performers AS p "
+        "INNER JOIN groups AS g ON g.id_group = p.id_performer "
+        "WHERE p.id_performer = ? AND p.id_type = 1;";
+
+    if (!preparar(baseDatos, consulta, consultar, mensajeError)) {
+        return false;
+    }
+    codigo = sqlite3_bind_int(consultar.get(), 1, idInterprete);
+
+    if (codigo != SQLITE_OK) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+        return false;
+    }
+    codigo = sqlite3_step(consultar.get());
+
+    if (codigo == SQLITE_DONE) {
+        mensajeError = "El intérprete ya no está clasificado como grupo o no se pudo crear su registro.";
+        return false;
+    }
+
+    if (codigo != SQLITE_ROW) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+        return false;
+    }
+    return true;
+}
+
 // Función para obtener los integrantes que siguen registrados como personas
 bool EdicionInterpretes::obtenerIntegrantes(int idGrupo,
     std::vector<DatosIntegrante>& integrantes, std::string& mensajeError) const {
