@@ -19,7 +19,7 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
-// Función auxiliar para cargar una fecha desde un valor de texto
+// Funciones auxiliares para manejar fechas y crear campos de fecha con casilla de verificación
 namespace {
 void cargarFecha(const std::string& valor, QCheckBox *activa, QDateEdit *campo) {
     const QDate fecha = QDate::fromString(QString::fromStdString(valor), Qt::ISODate);
@@ -97,14 +97,23 @@ VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPer
         static_cast<int>(metadatos.imagenArtista.datos.size()));
     }
 
+    // El performer genérico "Unknown" puede representar artistas distintos
+    const bool esDesconocidoGenerico = cancion.idTipoInterprete == 2 
+    && cancion.artista.trimmed().compare("Unknown", Qt::CaseInsensitive) == 0;
+
     // Priorizar la imagen personalizada y después la incrustada
-    QImage imagenActual = GestorImagenes::cargarInterprete(cancion.idInterprete);
+    QImage imagenActual;
+
+    if (!esDesconocidoGenerico) {
+        imagenActual = GestorImagenes::cargarInterprete(cancion.idInterprete);
+    }
+
     if (imagenActual.isNull()) {
         imagenActual = imagenIncrustada;
     }
     QLabel *etiquetaImagen = new QLabel("Imagen del intérprete:", this);
     vistaImagen = new QLabel(this);
-    vistaImagen->setFixedSize(180, 180);
+    vistaImagen->setFixedSize(160, 160);
     vistaImagen->setAlignment(Qt::AlignCenter);
     vistaImagen->setObjectName("vistaImagenInterprete");
     mostrarImagen(imagenActual);
@@ -117,14 +126,22 @@ VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPer
     seccionImagen = new QWidget(this);
     QVBoxLayout *layoutImagen = new QVBoxLayout(seccionImagen);
     layoutImagen->setContentsMargins(0, 0, 0, 0);
-    layoutImagen->setSpacing(12);
+    layoutImagen->setSpacing(16);
     layoutImagen->addWidget(etiquetaImagen);
     layoutImagen->addWidget(vistaImagen, 0, Qt::AlignHCenter);
     layoutImagen->addLayout(botonesImagen);
 
-    QLabel *informacion = new QLabel(
-        "Los cambios se aplicarán a todas las canciones asociadas "
-        "con este intérprete.", this);
+    QLabel *informacion = new QLabel(this);
+
+    if (esDesconocidoGenerico) {
+        informacion->setText(
+            "Si personalizas este intérprete, esta canción se separará de las "
+            "demás canciones que todavía aparecen como Unknown.");
+    } else {
+        informacion->setText(
+            "Los cambios se aplicarán a todas las canciones asociadas "
+            "con este intérprete.");
+    }
     informacion->setWordWrap(true);
     QDialogButtonBox *botones = new QDialogButtonBox(this);
     QPushButton *guardar = botones->addButton("Guardar", QDialogButtonBox::AcceptRole);
@@ -177,7 +194,7 @@ VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPer
 void VentanaInterprete::guardarCambios() {
     if (campoNombre->text().trimmed().isEmpty()) {
         QMessageBox::warning(this, "Dato inválido",
-        "El nombre del intérprete no puede estar vacío.");
+            "El nombre del intérprete no puede estar vacío.");
         campoNombre->setFocus();
         return;
     }
@@ -207,8 +224,8 @@ void VentanaInterprete::seleccionarImagen() {
     if (ruta.isEmpty()) {
         return;
     }
-
     QImage imagen(ruta);
+
     if (imagen.isNull()) {
         QMessageBox::warning(this, "Imagen inválida",
             "No se pudo abrir la imagen seleccionada.");

@@ -11,14 +11,15 @@
 #include <QToolButton>
 #include <QWidget>
 
-ControladorEditInterp::ControladorEditInterp(QToolButton *botonEditarInterprete, PanelCanciones *panelCanciones, 
-    QWidget *ventanaPadre) : QObject(ventanaPadre), panelCanciones(panelCanciones), ventanaPadre(ventanaPadre) {
+ControladorEditInterp::ControladorEditInterp(QToolButton *botonEditarInterprete,
+    PanelCanciones *panelCanciones, QWidget *ventanaPadre)
+    : QObject(ventanaPadre), panelCanciones(panelCanciones), ventanaPadre(ventanaPadre) {
     connect(botonEditarInterprete, &QToolButton::clicked, this, [this]() {
         editarInterprete();
     });
 }
 
-// Función para editar el intérprete de la canción seleccionada
+// Función para editar el intérprete de la canción seleccionada en el panel de canciones
 void ControladorEditInterp::editarInterprete() {
     CancionVista cancion;
 
@@ -65,8 +66,16 @@ void ControladorEditInterp::editarInterprete() {
     nuevosDatosPersona.fechaNacimiento = ventana.obtenerFechaNacimiento().toStdString();
     nuevosDatosPersona.fechaFallecimiento = ventana.obtenerFechaFallecimiento().toStdString();
 
-    const bool actualizado = editor.actualizarInterprete(cancion.idInterprete, ventana.obtenerNombre().toStdString(),
-        ventana.obtenerTipo(), nuevosDatosPersona, mensajeError);
+    int idInterpreteActualizado = 0;
+    const bool actualizado = editor.actualizarInterprete(
+        cancion.idInterprete,
+        cancion.idRola,
+        ventana.obtenerNombre().toStdString(),
+        ventana.obtenerTipo(),
+        nuevosDatosPersona,
+        idInterpreteActualizado,
+        mensajeError
+    );
 
     if (!actualizado) {
         QMessageBox::critical(ventanaPadre, "Error al editar intérprete",
@@ -77,13 +86,12 @@ void ControladorEditInterp::editarInterprete() {
     // Guardar o restaurar la imagen personalizada, si el usuario lo solicitó
     QString errorImagen;
     bool imagenActualizada = true;
-
     if (ventana.obtenerTipo() != 2) {
         if (!ventana.obtenerRutaImagenSeleccionada().isEmpty()) {
-            imagenActualizada = GestorImagenes::guardarInterprete(cancion.idInterprete, 
+            imagenActualizada = GestorImagenes::guardarInterprete(idInterpreteActualizado, 
             ventana.obtenerRutaImagenSeleccionada(), errorImagen);
         } else if (ventana.debeEliminarImagenPersonalizada()) {
-            imagenActualizada = GestorImagenes::eliminarInterprete(cancion.idInterprete, errorImagen);
+            imagenActualizada = GestorImagenes::eliminarInterprete(idInterpreteActualizado, errorImagen);
         }
     }
     panelCanciones->recargarCanciones();
