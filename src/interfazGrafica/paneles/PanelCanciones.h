@@ -4,6 +4,8 @@
 #include <QWidget>
 #include <QString>
 
+class QObject;
+class QEvent;
 class QTableView;
 class QListView;
 class QStackedWidget;
@@ -14,6 +16,7 @@ struct CancionVista;
 class PanelCanciones : public QWidget {
 public:
     explicit PanelCanciones(QWidget *parent = nullptr);
+    ~PanelCanciones() override;
     void establecerTextoBusqueda(const QString &texto);
     void recargarCanciones();
     void establecerVistaGaleria(bool activa);
@@ -30,5 +33,8 @@ private:
     QStackedWidget *vistasCanciones;
     QSortFilterProxyModel *filtroCanciones;
     Canciones *modeloCanciones;
+
+protected:
+    bool eventFilter(QObject *objeto, QEvent *evento) override;
 };
 #endif

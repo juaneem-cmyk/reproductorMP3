@@ -2,6 +2,7 @@
 #include "../modelos/Canciones.h"
 #include <QVBoxLayout>
 #include <QTableView>
+#include <QAbstractItemView>
 #include <QListView>
 #include <QStackedWidget>
 #include <QHeaderView>
@@ -10,6 +11,8 @@
 #include <QSize>
 #include <QFontMetrics>
 #include <QEvent>
+#include <QApplication>
+#include <QMouseEvent>
 
 // Centra el conjunto de portadas sin modificar el tamaño ni la separación que ya tienen
 class GaleriaCentrada : public QListView {
@@ -179,6 +182,77 @@ PanelCanciones::PanelCanciones(QWidget *parent) : QWidget(parent) {
             background-color: #39452E;
         }
     )");
+
+    // Detectar clics fuera de las vistas para permitir limpiar la selección
+    if (QApplication::instance()) {
+        QApplication::instance()->installEventFilter(this);
+    }
+}
+
+PanelCanciones::~PanelCanciones() {
+    if (QApplication::instance()) {
+        QApplication::instance()->removeEventFilter(this);
+    }
+}
+
+bool PanelCanciones::eventFilter(QObject *objeto, QEvent *evento) {
+    if (evento->type() != QEvent::MouseButtonPress) {
+        return QWidget::eventFilter(objeto, evento);
+    }
+
+    QWidget *widget = qobject_cast<QWidget *>(objeto);
+    if (!widget) {
+        return QWidget::eventFilter(objeto, evento);
+    }
+
+    // Ignorar eventos que no ocurran dentro del área principal de trabajo
+    QWidget *areaTrabajo = parentWidget();
+    QWidget *ancestro = widget;
+    while (ancestro && ancestro != areaTrabajo) {
+        ancestro = ancestro->parentWidget();
+    }
+    if (!areaTrabajo || ancestro != areaTrabajo) {
+        return QWidget::eventFilter(objeto, evento);
+    }
+
+    // Si se pulsa una zona vacía de la ventana se limpia la selección de la tabla y la galería
+    auto limpiarSiEsEspacioVacio = [this, evento](QAbstractItemView *vista) {
+        const auto *clic = static_cast<QMouseEvent *>(evento);
+        const QPoint posicion = clic->position().toPoint();
+        if (!vista->indexAt(posicion).isValid()) {
+            tablaCanciones->selectionModel()->clear();
+        }
+    };
+
+    // Mantener la selección al interactuar con cualquier parte de las vistas
+    auto perteneceA = [widget](QWidget *raiz) {
+        QWidget *actual = widget;
+        while (actual) {
+            if (actual == raiz) {
+                return true;
+            }
+            actual = actual->parentWidget();
+        }
+        return false;
+    };
+
+    if (perteneceA(tablaCanciones)) {
+        if (widget == tablaCanciones->viewport()) {
+            limpiarSiEsEspacioVacio(tablaCanciones);
+        }
+        return QWidget::eventFilter(objeto, evento);
+    }
+
+    if (perteneceA(galeriaCanciones)) {
+        if (widget == galeriaCanciones->viewport()) {
+            limpiarSiEsEspacioVacio(galeriaCanciones);
+        }
+        return QWidget::eventFilter(objeto, evento);
+    }
+
+    // Cualquier clic en el resto del área de trabajo deselecciona la canción
+    tablaCanciones->selectionModel()->clear();
+    return QWidget::eventFilter(objeto, evento);
 }
 
 QTableView *PanelCanciones::obtenerTabla() const {
