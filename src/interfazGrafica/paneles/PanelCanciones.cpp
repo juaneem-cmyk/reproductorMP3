@@ -143,19 +143,26 @@ PanelCanciones::PanelCanciones(QWidget *parent) : QWidget(parent) {
     // Estilos de la tabla
     tablaCanciones->setStyleSheet(R"(
         QTableView {
-            background-color: #292F23;
-            alternate-background-color: #303B27;
-            color: #E6E5D7;
+            background-color: #2D3D2C;
+            alternate-background-color: #374B32;
+            color: #F1EBD8;
             border: none;
-            selection-background-color: #5E873B;
+            selection-background-color: #648F3D;
             selection-color: #FFFFFF;
             font-size: 13px;
         }
+        QTableView::item:selected {
+            background-color: #648F3D;
+            color: #FFFFFF;
+        }
+        QTableView::item:hover {
+            background-color: #426536;
+        }
         QHeaderView::section {
-            background-color: #39452E;
-            color: #E6E5D7;
+            background-color: #426536;
+            color: #F1EBD8;
             border: none;
-            border-bottom: 2px solid #805638;
+            border-bottom: 2px solid #95622F;
             padding: 10px;
             font-weight: bold;
         }
@@ -164,8 +171,8 @@ PanelCanciones::PanelCanciones(QWidget *parent) : QWidget(parent) {
     // Estilo de la galería de portadas
     galeriaCanciones->setStyleSheet(R"(
         QListView {
-            background-color: #292F23;
-            color: #E6E5D7;
+            background-color: #2D3D2C;
+            color: #F1EBD8;
             border: none;
             font-size: 13px;
             outline: none;
@@ -175,11 +182,11 @@ PanelCanciones::PanelCanciones(QWidget *parent) : QWidget(parent) {
             border-radius: 5px;
         }
         QListView::item:selected {
-            background-color: #5E873B;
+            background-color: #648F3D;
             color: #FFFFFF;
         }
         QListView::item:hover {
-            background-color: #39452E;
+            background-color: #426536;
         }
     )");
 

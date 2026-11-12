@@ -35,8 +35,9 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     QWidget *areaTrabajo = new QWidget(contenedor);
     areaTrabajo->setObjectName("areaTrabajo");
     QHBoxLayout *layoutPrincipal = new QHBoxLayout(areaTrabajo);
-    layoutPrincipal->setContentsMargins(20, 20, 20, 20);
-    layoutPrincipal->setSpacing(15);
+    // El contenido comienza inmediatamente debajo de la barra superior
+    layoutPrincipal->setContentsMargins(12, 0, 12, 0);
+    layoutPrincipal->setSpacing(6);
 
     // Panel izquierdo: información del álbum
     PanelAlbum *panelIzquierdo = new PanelAlbum(areaTrabajo);
@@ -123,36 +124,38 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     // Estilos iniciales
     setStyleSheet(R"(
         QMainWindow {
-            background-color: #20251B;
+            background-color: #263B25;
         }
         QWidget#contenedorPrincipal {
-            background-color: #20251B;
+            background-color: #263B25;
+        }
+        QWidget#areaTrabajo {
+            background-color: #263B25;
         }
         QWidget#panelIzquierdo {
-        background-color: #303B27;
-        border: 2px solid #503923;
+            background-color: #35472E;
+            border-left: 1px solid #95622F;
+            border-right: 1px solid #95622F;
+            border-top: none;
+            border-bottom: none;
         }
         QFrame#marcoPortada {
-        background-color: transparent;
-        border: none;
+            background-color: transparent;
+            border: none;
         }
         QLabel#portada {
-        background-color: #39452E;
-        color: #E6E5D7;
-        font-size: 20px;
-        font-weight: bold;
-        border: 1px solid #503923;
+            background-color: #426536;
+            color: #F1EBD8;
+            font-size: 20px;
+            font-weight: bold;
+            border: 1px solid #95622F;
         }
         QWidget#panelDerecho {
-        background-color: #292F23;
-        border: 2px solid #503923;
-        }
-        QTableView::item:selected {
-        background-color: #5E873B;
-        color: #E6E5D7;
-        }
-        QTableView::item:hover {
-        background-color: #39452E;
+            background-color: #35472E;
+            border-left: 1px solid #95622F;
+            border-right: 1px solid #95622F;
+            border-top: none;
+            border-bottom: none;
         }
     )");
     // Establecer el contenedor principal como el widget central de la ventana

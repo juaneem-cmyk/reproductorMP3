@@ -90,8 +90,81 @@ PanelControles::PanelControles(QWidget *parent) : QWidget(parent) {
     QVBoxLayout *layoutPrincipal = new QVBoxLayout(this);
     layoutPrincipal->setContentsMargins(0, 0, 0, 0);
     layoutPrincipal->setSpacing(0);
+    // La línea de progreso queda arriba de los controles y funciona como la división visual
     layoutPrincipal->addWidget(barraProgreso);
     layoutPrincipal->addLayout(layoutInferior);
+
+    // Estilos del reproductor principal
+    setStyleSheet(R"(
+        QWidget#panelControles {
+            background-color: #704522;
+            border: none;
+        }
+        QLabel {
+            color: #F1EBD8;
+            background: transparent;
+        }
+        QPushButton {
+            background-color: #648F3D;
+            color: #F1EBD8;
+            border: 1px solid #95622F;
+            border-radius: 4px;
+            padding: 3px 7px;
+        }
+        QPushButton:hover {
+            background-color: #80A94A;
+        }
+        QPushButton:pressed {
+            background-color: #426536;
+        }
+        QToolButton#botonVolumen {
+            background-color: #648F3D;
+            color: #F1EBD8;
+            border: 1px solid #95622F;
+            border-radius: 4px;
+            padding: 3px;
+        }
+        QToolButton#botonVolumen:hover {
+            background-color: #80A94A;
+        }
+        QSlider#barraProgreso {
+            background: transparent;
+            padding: 0px;
+        }
+        QSlider#barraProgreso::groove:horizontal {
+            height: 4px;
+            background-color: #95622F;
+            border: none;
+        }
+        QSlider#barraProgreso::sub-page:horizontal {
+            background-color: #B98B53;
+        }
+        QSlider#barraProgreso::handle:horizontal {
+            width: 10px;
+            margin: -3px 0px;
+            border: 1px solid #F1EBD8;
+            border-radius: 5px;
+            background-color: #648F3D;
+        }
+        QSlider#barraProgreso:disabled::groove:horizontal {
+            background-color: #95622F;
+        }
+        QSlider#controlVolumen::groove:horizontal {
+            height: 4px;
+            background-color: #95622F;
+            border: none;
+        }
+        QSlider#controlVolumen::sub-page:horizontal {
+            background-color: #B98B53;
+        }
+        QSlider#controlVolumen::handle:horizontal {
+            width: 10px;
+            margin: -4px 0px;
+            border: 1px solid #F1EBD8;
+            border-radius: 5px;
+            background-color: #648F3D;
+        }
+    )");
 }
 
 // Actualizar el tiempo de reproducción
