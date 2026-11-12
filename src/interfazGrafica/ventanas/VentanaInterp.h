@@ -19,7 +19,8 @@ class QWidget;
 
 class VentanaInterprete : public QDialog {
 public:
-    explicit VentanaInterprete(const CancionVista& cancion, const DatosPersona& datosPersona,
+    explicit VentanaInterprete(const std::vector<DatosIntegrante>& personasDisponibles, QWidget *parent = nullptr);
+    VentanaInterprete(const CancionVista& cancion, const DatosPersona& datosPersona,
         const DatosGrupo& datosGrupo, const std::vector<DatosIntegrante>& integrantes,
         const std::vector<DatosIntegrante>& personasDisponibles, QWidget *parent = nullptr);
     int obtenerTipo() const;
@@ -55,13 +56,17 @@ private:
     QLabel *etiquetaCantidadIntegrantes;
     QLabel *etiquetaSinIntegrantes;
     QPushButton *botonQuitarIntegrante;
-    int idInterprete;
     std::vector<DatosIntegrante> integrantesGrupo;
     std::vector<DatosIntegrante> personasDisponibles;
     QImage imagenIncrustada;
     QString rutaImagenSeleccionada;
     
+    int idInterprete;
+    bool nuevoInterprete = false;
     bool eliminarImagenPersonalizada = false;
+    VentanaInterprete(const CancionVista& cancion, const DatosPersona& datosPersona,
+        const DatosGrupo& datosGrupo, const std::vector<DatosIntegrante>& integrantes,
+        const std::vector<DatosIntegrante>& personasDisponibles, QWidget *parent, bool nuevo);
     void guardarCambios();
     void seleccionarImagen();
     void restaurarImagenOriginal();

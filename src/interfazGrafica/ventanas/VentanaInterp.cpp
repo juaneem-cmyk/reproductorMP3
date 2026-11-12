@@ -54,12 +54,22 @@ QWidget* crearCampoFecha(QCheckBox *&activa, QDateEdit *&campo, QWidget *parent)
 }
 }
 
+VentanaInterprete::VentanaInterprete(const std::vector<DatosIntegrante>& personasDisponibles, QWidget *parent)
+    : VentanaInterprete(CancionVista{}, DatosPersona{}, DatosGrupo{}, {}, personasDisponibles, parent, true) {
+}
+
 VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPersona& datosPersona,
     const DatosGrupo& datosGrupo, const std::vector<DatosIntegrante>& integrantes,
     const std::vector<DatosIntegrante>& personasDisponibles, QWidget *parent)
-    : QDialog(parent), idInterprete(cancion.idInterprete),
+    : VentanaInterprete(cancion, datosPersona, datosGrupo, integrantes, personasDisponibles, parent, false) {
+}
+
+VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPersona& datosPersona,
+    const DatosGrupo& datosGrupo, const std::vector<DatosIntegrante>& integrantes,
+    const std::vector<DatosIntegrante>& personasDisponibles, QWidget *parent, bool nuevo)
+    : QDialog(parent), idInterprete(cancion.idInterprete), nuevoInterprete(nuevo),
     integrantesGrupo(integrantes), personasDisponibles(personasDisponibles) {
-    setWindowTitle("Editar intérprete");
+    setWindowTitle(nuevoInterprete ? "Agregar artista" : "Editar intérprete");
     setMinimumWidth(430);
     setModal(true);
 
@@ -73,9 +83,11 @@ VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPer
     campoTipo = new QComboBox(this);
     campoTipo->addItem("Persona / solista", 0);
     campoTipo->addItem("Grupo", 1);
-    campoTipo->addItem("Desconocido", 2);
+    if (!nuevoInterprete) {
+        campoTipo->addItem("Desconocido", 2);
+    }
     const int indiceTipo = campoTipo->findData(cancion.idTipoInterprete);
-    campoTipo->setCurrentIndex(indiceTipo >= 0 ? indiceTipo : 2);
+    campoTipo->setCurrentIndex(nuevoInterprete ? 0 : (indiceTipo >= 0 ? indiceTipo : 2));
     formulario->addRow(etiquetaNombre, campoNombre);
     formulario->addRow("Clasificación:", campoTipo);
 
@@ -139,7 +151,7 @@ VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPer
     MetadatosMusicales metadatos;
     std::string mensajeError;
 
-    if (lector.leerArchivo(cancion.ruta.toStdString(), metadatos, mensajeError)
+    if (!nuevoInterprete && lector.leerArchivo(cancion.ruta.toStdString(), metadatos, mensajeError)
         && !metadatos.imagenArtista.datos.empty()) {
         imagenIncrustada.loadFromData(metadatos.imagenArtista.datos.data(), 
         static_cast<int>(metadatos.imagenArtista.datos.size()));
@@ -152,7 +164,7 @@ VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPer
     // Priorizar la imagen personalizada y después la incrustada
     QImage imagenActual;
 
-    if (!esDesconocidoGenerico) {
+    if (!nuevoInterprete && !esDesconocidoGenerico && cancion.idInterprete > 0) {
         imagenActual = GestorImagenes::cargarInterprete(cancion.idInterprete);
     }
 
