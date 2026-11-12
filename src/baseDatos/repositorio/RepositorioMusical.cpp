@@ -76,7 +76,8 @@ bool RepositorioMusical::obtenerOCrearInterprete(const std::string& nombre, int&
     // Si el MP3 no tiene artista, usamos un intérprete desconocido
     const std::string nombreInterprete = nombre.empty() ? "Unknown" : nombre;
     // Buscar el intérprete antes de insertar uno nuevo
-    const char* consulta = "SELECT id_performer " "FROM performers " "WHERE name = ? " "ORDER BY id_performer " "LIMIT 1;";
+    const char* consulta = "SELECT id_performer " "FROM performers "
+        "WHERE lower(trim(name)) = lower(trim(?)) " "ORDER BY id_performer " "LIMIT 1;";
     sqlite3_stmt* temporal = nullptr;
 
     int codigo = sqlite3_prepare_v2(baseDatos, consulta, -1, &temporal, nullptr);
