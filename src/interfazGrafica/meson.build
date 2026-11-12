@@ -1,5 +1,6 @@
 qt6_widgets = dependency('qt6', modules: ['Widgets'])
 qt6_multimedia = dependency('qt6', modules: ['Multimedia'])
+qt6_concurrent = dependency('qt6', modules: ['Concurrent'])
 
 executable('reproductor', 'main.cpp', 'VentanaPrincipal.cpp',
     # Componentes visuales
@@ -35,6 +36,6 @@ executable('reproductor', 'main.cpp', 'VentanaPrincipal.cpp',
     include_directories: include_directories('../baseDatos',
     '../baseDatos/repositorio', '../minero'),
 
-    dependencies: [qt6_widgets, qt6_multimedia, taglib, sqlite3],
+    dependencies: [qt6_widgets, qt6_multimedia, qt6_concurrent, taglib, sqlite3],
     install: false
 )

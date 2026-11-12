@@ -17,5 +17,6 @@ private:
     QWidget *ventanaPadre;
 
     void editarInterprete();
+    void agregarInterprete();
 };
 #endif
