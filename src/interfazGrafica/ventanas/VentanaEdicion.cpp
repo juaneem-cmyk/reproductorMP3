@@ -13,13 +13,20 @@
 #include <QFileDialog>
 #include <QPixmap>
 #include <QHBoxLayout>
+#include <QGroupBox>
 
 VentanaEdit::VentanaEdit(const CancionVista& cancion, QWidget *parent) : QDialog(parent) {
     setWindowTitle("Editar canción");
-    setMinimumWidth(430);
+    setMinimumSize(700, 400);
+    resize(760, 440);
     setModal(true);
 
     QVBoxLayout *layoutPrincipal = new QVBoxLayout(this);
+    layoutPrincipal->setContentsMargins(14, 14, 14, 14);
+    layoutPrincipal->setSpacing(10);
+    QHBoxLayout *columnas = new QHBoxLayout();
+    columnas->setContentsMargins(0, 0, 0, 0);
+    columnas->setSpacing(14);
     QFormLayout *formulario = new QFormLayout();
 
     // Campos de edición
@@ -39,6 +46,10 @@ VentanaEdit::VentanaEdit(const CancionVista& cancion, QWidget *parent) : QDialog
     formulario->addRow("Álbum:", campoAlbum);
     formulario->addRow("Año:", campoYear);
 
+    QGroupBox *grupoInformacion = new QGroupBox("Información de la canción", this);
+    QVBoxLayout *layoutInformacion = new QVBoxLayout(grupoInformacion);
+    layoutInformacion->addLayout(formulario);
+
     // Cargar la portada incrustada para poder restaurarla posteriormente
     LectorMetadatosMP3 lector;
     MetadatosMusicales metadatos;
@@ -57,15 +68,16 @@ VentanaEdit::VentanaEdit(const CancionVista& cancion, QWidget *parent) : QDialog
     }
 
     // Vista previa y controles de portada
-    QLabel *etiquetaPortada = new QLabel("Portada:", this);
-    vistaPortada = new QLabel(this);
-    vistaPortada->setFixedSize(180, 180);
+    QGroupBox *grupoPortada = new QGroupBox("Portada", this);
+    QVBoxLayout *layoutPortada = new QVBoxLayout(grupoPortada);
+    vistaPortada = new QLabel(grupoPortada);
+    vistaPortada->setFixedSize(190, 190);
     vistaPortada->setAlignment(Qt::AlignCenter);
     vistaPortada->setObjectName("vistaPortada");
     mostrarPortada(imagenActual);
 
-    QPushButton *cambiarPortada = new QPushButton("Cambiar portada", this);
-    QPushButton *restaurarPortada = new QPushButton("Restaurar original", this);
+    QPushButton *cambiarPortada = new QPushButton("Cambiar portada", grupoPortada);
+    QPushButton *restaurarPortada = new QPushButton("Restaurar original", grupoPortada);
     QHBoxLayout *botonesPortada = new QHBoxLayout();
     botonesPortada->addWidget(cambiarPortada);
     botonesPortada->addWidget(restaurarPortada);
@@ -78,18 +90,23 @@ VentanaEdit::VentanaEdit(const CancionVista& cancion, QWidget *parent) : QDialog
         this
     );
     informacion->setWordWrap(true);
+    layoutInformacion->addWidget(informacion);
+    layoutInformacion->addStretch();
+
+    layoutPortada->setContentsMargins(12, 14, 12, 12);
+    layoutPortada->setSpacing(12);
+    layoutPortada->addWidget(vistaPortada, 0, Qt::AlignHCenter);
+    layoutPortada->addLayout(botonesPortada);
 
     // Botones del diálogo
     QDialogButtonBox *botones = new QDialogButtonBox(this);
     QPushButton *guardar = botones->addButton("Guardar", QDialogButtonBox::AcceptRole);
     QPushButton *cancelar = botones->addButton("Cancelar", QDialogButtonBox::RejectRole);
 
-    // Organización
-    layoutPrincipal->addLayout(formulario);
-    layoutPrincipal->addWidget(etiquetaPortada);
-    layoutPrincipal->addWidget(vistaPortada, 0, Qt::AlignHCenter);
-    layoutPrincipal->addLayout(botonesPortada);
-    layoutPrincipal->addWidget(informacion);
+    // Organización: datos a la izquierda y portada a la derecha
+    columnas->addWidget(grupoInformacion, 3);
+    columnas->addWidget(grupoPortada, 2);
+    layoutPrincipal->addLayout(columnas, 1);
     layoutPrincipal->addWidget(botones);
 
     connect(cambiarPortada, &QPushButton::clicked, this, &VentanaEdit::seleccionarPortada);
@@ -105,6 +122,19 @@ VentanaEdit::VentanaEdit(const CancionVista& cancion, QWidget *parent) : QDialog
         }
         QLabel {
             color: #E6E5D7;
+        }
+        QGroupBox {
+            color: #E6E5D7;
+            border: 1px solid #805638;
+            border-radius: 5px;
+            margin-top: 8px;
+            padding-top: 8px;
+            font-weight: bold;
+        }
+        QGroupBox::title {
+            subcontrol-origin: margin;
+            left: 9px;
+            padding: 0 4px;
         }
         QLabel#vistaPortada {
             background-color: #303B27;

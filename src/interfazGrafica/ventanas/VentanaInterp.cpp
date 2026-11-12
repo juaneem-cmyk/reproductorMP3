@@ -67,13 +67,16 @@ VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPer
 VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPersona& datosPersona,
     const DatosGrupo& datosGrupo, const std::vector<DatosIntegrante>& integrantes,
     const std::vector<DatosIntegrante>& personasDisponibles, QWidget *parent, bool nuevo)
-    : QDialog(parent), idInterprete(cancion.idInterprete), nuevoInterprete(nuevo),
-    integrantesGrupo(integrantes), personasDisponibles(personasDisponibles) {
+    : QDialog(parent), integrantesGrupo(integrantes), personasDisponibles(personasDisponibles),
+    idInterprete(cancion.idInterprete), nuevoInterprete(nuevo) {
     setWindowTitle(nuevoInterprete ? "Agregar artista" : "Editar intérprete");
-    setMinimumWidth(430);
+    setMinimumSize(700, 480);
+    resize(780, 560);
     setModal(true);
 
     QVBoxLayout *layoutPrincipal = new QVBoxLayout(this);
+    layoutPrincipal->setContentsMargins(14, 14, 14, 14);
+    layoutPrincipal->setSpacing(10);
     QFormLayout *formulario = new QFormLayout();
 
     // El nombre general también funciona como nombre artístico para personas
@@ -92,8 +95,9 @@ VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPer
     formulario->addRow("Clasificación:", campoTipo);
 
     // Datos específicos de una persona o solista
-    seccionPersona = new QWidget(this);
-    QFormLayout *formularioPersona = new QFormLayout(seccionPersona);
+    QGroupBox *informacionPersona = new QGroupBox("Información de la persona", this);
+    seccionPersona = informacionPersona;
+    QFormLayout *formularioPersona = new QFormLayout(informacionPersona);
     formularioPersona->setContentsMargins(0, 0, 0, 0);
     campoNombreReal = new QLineEdit(QString::fromStdString(datosPersona.nombreReal), this);
     campoNombreReal->setClearButtonEnabled(true);
@@ -171,23 +175,22 @@ VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPer
     if (imagenActual.isNull()) {
         imagenActual = imagenIncrustada;
     }
-    QLabel *etiquetaImagen = new QLabel("Imagen del intérprete:", this);
-    vistaImagen = new QLabel(this);
-    vistaImagen->setFixedSize(160, 160);
+    QGroupBox *grupoImagen = new QGroupBox("Imagen del intérprete", this);
+    seccionImagen = grupoImagen;
+    vistaImagen = new QLabel(grupoImagen);
+    vistaImagen->setFixedSize(190, 190);
     vistaImagen->setAlignment(Qt::AlignCenter);
     vistaImagen->setObjectName("vistaImagenInterprete");
     mostrarImagen(imagenActual);
 
-    QPushButton *cambiarImagen = new QPushButton("Cambiar imagen", this);
-    QPushButton *restaurarImagen = new QPushButton("Restaurar original", this);
+    QPushButton *cambiarImagen = new QPushButton("Cambiar imagen", grupoImagen);
+    QPushButton *restaurarImagen = new QPushButton("Restaurar original", grupoImagen);
     QHBoxLayout *botonesImagen = new QHBoxLayout();
     botonesImagen->addWidget(cambiarImagen);
     botonesImagen->addWidget(restaurarImagen);
-    seccionImagen = new QWidget(this);
-    QVBoxLayout *layoutImagen = new QVBoxLayout(seccionImagen);
-    layoutImagen->setContentsMargins(0, 0, 0, 0);
-    layoutImagen->setSpacing(16);
-    layoutImagen->addWidget(etiquetaImagen);
+    QVBoxLayout *layoutImagen = new QVBoxLayout(grupoImagen);
+    layoutImagen->setContentsMargins(12, 14, 12, 12);
+    layoutImagen->setSpacing(12);
     layoutImagen->addWidget(vistaImagen, 0, Qt::AlignHCenter);
     layoutImagen->addLayout(botonesImagen);
 
@@ -203,14 +206,36 @@ VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPer
             "con este intérprete.");
     }
     informacion->setWordWrap(true);
+
+    // Distribuir la información a la izquierda y la imagen a la derecha
+    QWidget *contenido = new QWidget(this);
+    QHBoxLayout *columnas = new QHBoxLayout(contenido);
+    columnas->setContentsMargins(0, 0, 0, 0);
+    columnas->setSpacing(14);
+
+    QWidget *columnaInformacion = new QWidget(contenido);
+    QVBoxLayout *layoutInformacion = new QVBoxLayout(columnaInformacion);
+    layoutInformacion->setContentsMargins(0, 0, 0, 0);
+    layoutInformacion->setSpacing(10);
+    layoutInformacion->addWidget(seccionPersona);
+    layoutInformacion->addWidget(seccionGrupo);
+    layoutInformacion->addStretch();
+
+    QWidget *columnaImagen = new QWidget(contenido);
+    QVBoxLayout *layoutColumnaImagen = new QVBoxLayout(columnaImagen);
+    layoutColumnaImagen->setContentsMargins(0, 0, 0, 0);
+    layoutColumnaImagen->addWidget(seccionImagen, 0, Qt::AlignTop);
+    layoutColumnaImagen->addStretch();
+
+    columnas->addWidget(columnaInformacion, 3);
+    columnas->addWidget(columnaImagen, 2);
+
     QDialogButtonBox *botones = new QDialogButtonBox(this);
     QPushButton *guardar = botones->addButton("Guardar", QDialogButtonBox::AcceptRole);
     QPushButton *cancelar = botones->addButton("Cancelar", QDialogButtonBox::RejectRole);
 
     layoutPrincipal->addLayout(formulario);
-    layoutPrincipal->addWidget(seccionPersona);
-    layoutPrincipal->addWidget(seccionGrupo);
-    layoutPrincipal->addWidget(seccionImagen);
+    layoutPrincipal->addWidget(contenido, 1);
     layoutPrincipal->addWidget(informacion);
     layoutPrincipal->addWidget(botones);
 
@@ -229,6 +254,19 @@ VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPer
     setStyleSheet(R"(
         QDialog { background-color: #20251B; color: #E6E5D7; }
         QLabel { color: #E6E5D7; }
+        QGroupBox {
+            color: #E6E5D7;
+            border: 1px solid #805638;
+            border-radius: 5px;
+            margin-top: 8px;
+            padding-top: 8px;
+            font-weight: bold;
+        }
+        QGroupBox::title {
+            subcontrol-origin: margin;
+            left: 9px;
+            padding: 0 4px;
+        }
         QLabel#vistaImagenInterprete {
             background-color: #303B27;
             border: 1px solid #805638;

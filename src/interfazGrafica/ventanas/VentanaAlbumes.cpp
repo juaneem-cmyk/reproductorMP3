@@ -6,6 +6,7 @@
 #include <QLabel>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QSpinBox>
 #include <QTableWidget>
 #include <QVBoxLayout>
 #include <utility>
@@ -21,8 +22,9 @@ VentanaAlbumes::VentanaAlbumes(const std::vector<DatosAlbum>& albumes, QWidget *
     // Configuración de la tabla y los botones
     QVBoxLayout *layoutPrincipal = new QVBoxLayout(this);
     QLabel *descripcion = new QLabel(
-        "Modifica el nombre, año o carpeta de los álbumes. La cantidad de canciones es informativa. "
-        "Los cambios se guardan únicamente en la base de datos; los MP3 no se modifican.", this);
+        "Modifica el nombre, año o carpeta de los álbumes. Usa el control numérico de la columna Año. "
+        "La cantidad de canciones es informativa. Los cambios se guardan únicamente en la base de datos; "
+        "los MP3 no se modifican.", this);
     descripcion->setWordWrap(true);
 
     tablaAlbumes->setColumnCount(4);
@@ -39,7 +41,7 @@ VentanaAlbumes::VentanaAlbumes(const std::vector<DatosAlbum>& albumes, QWidget *
     tablaAlbumes->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Fixed);
     tablaAlbumes->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
     tablaAlbumes->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Fixed);
-    tablaAlbumes->setColumnWidth(1, 85);
+    tablaAlbumes->setColumnWidth(1, 105);
     tablaAlbumes->setColumnWidth(3, 90);
     tablaAlbumes->setWordWrap(false);
 
@@ -51,9 +53,22 @@ VentanaAlbumes::VentanaAlbumes(const std::vector<DatosAlbum>& albumes, QWidget *
         nombre->setToolTip(QString::fromStdString(album.nombre));
         tablaAlbumes->setItem(fila, 0, nombre);
 
-        auto *year = new QTableWidgetItem(QString::number(album.year));
-        year->setTextAlignment(Qt::AlignCenter);
-        tablaAlbumes->setItem(fila, 1, year);
+        // El año se muestra como un control numérico editable
+        auto *yearItem = new QTableWidgetItem();
+        yearItem->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+        tablaAlbumes->setItem(fila, 1, yearItem);
+
+        auto *year = new QSpinBox(tablaAlbumes);
+        year->setRange(0, 9999);
+        year->setSpecialValueText("Desconocido");
+        year->setValue(album.year);
+        year->setAlignment(Qt::AlignCenter);
+        year->setToolTip("Año del álbum. Usa Desconocido si no se conoce.");
+        year->setMinimumWidth(90);
+        tablaAlbumes->setCellWidget(fila, 1, year);
+        connect(year, qOverload<int>(&QSpinBox::valueChanged), this, [this, fila](int) {
+            tablaAlbumes->selectRow(fila);
+        });
 
         auto *ruta = new QTableWidgetItem(QString::fromStdString(album.ruta));
         ruta->setFlags(ruta->flags() & ~Qt::ItemIsEditable);
@@ -105,11 +120,12 @@ VentanaAlbumes::VentanaAlbumes(const std::vector<DatosAlbum>& albumes, QWidget *
             padding: 9px;
             font-weight: bold;
         }
-        QTableWidget QLineEdit {
+        QTableWidget QLineEdit, QTableWidget QSpinBox {
             background-color: #20251B;
             color: #E6E5D7;
             border: 1px solid #86A94F;
-            padding: 4px;
+            border-radius: 3px;
+            padding: 3px;
         }
         QPushButton {
             background-color: #5E873B;
@@ -130,7 +146,9 @@ std::vector<DatosAlbum> VentanaAlbumes::obtenerAlbumes() const {
     for (int fila = 0; fila < tablaAlbumes->rowCount(); ++fila) {
         DatosAlbum album = albumesOriginales[static_cast<std::size_t>(fila)];
         album.nombre = tablaAlbumes->item(fila, 0)->text().trimmed().toStdString();
-        album.year = tablaAlbumes->item(fila, 1)->text().toInt();
+        const auto *campoYear = qobject_cast<QSpinBox*>(tablaAlbumes->cellWidget(fila, 1));
+        album.year = campoYear == nullptr ? albumesOriginales[static_cast<std::size_t>(fila)].year
+        : campoYear->value();
         album.ruta = tablaAlbumes->item(fila, 2)->text().toStdString();
         resultado.push_back(std::move(album));
     }
@@ -141,8 +159,6 @@ std::vector<DatosAlbum> VentanaAlbumes::obtenerAlbumes() const {
 void VentanaAlbumes::guardarCambios() {
     for (int fila = 0; fila < tablaAlbumes->rowCount(); ++fila) {
         const QString nombre = tablaAlbumes->item(fila, 0)->text().trimmed();
-        bool yearValido = false;
-        const int year = tablaAlbumes->item(fila, 1)->text().trimmed().toInt(&yearValido);
 
         if (nombre.isEmpty()) {
             QMessageBox::warning(this, "Nombre inválido",
@@ -151,17 +167,21 @@ void VentanaAlbumes::guardarCambios() {
             tablaAlbumes->editItem(tablaAlbumes->item(fila, 0));
             return;
         }
+        
         if (tablaAlbumes->item(fila, 2)->text().trimmed().isEmpty()) {
             QMessageBox::warning(this, "Carpeta inválida",
                 "Selecciona una carpeta para cada álbum.");
             tablaAlbumes->setCurrentCell(fila, 2);
             return;
         }
-        if (!yearValido || year < 0 || year > 9999) {
+        auto *campoYear = qobject_cast<QSpinBox*>(tablaAlbumes->cellWidget(fila, 1));
+
+        if (campoYear == nullptr || campoYear->value() < 0 || campoYear->value() > 9999) {
             QMessageBox::warning(this, "Año inválido",
                 "El año debe ser un número entre 0 y 9999. Usa 0 si es desconocido.");
-            tablaAlbumes->setCurrentCell(fila, 1);
-            tablaAlbumes->editItem(tablaAlbumes->item(fila, 1));
+            if (campoYear != nullptr) {
+                campoYear->setFocus();
+            }
             return;
         }
     }
