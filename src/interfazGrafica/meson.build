@@ -2,7 +2,11 @@ qt6_widgets = dependency('qt6', modules: ['Widgets'])
 qt6_multimedia = dependency('qt6', modules: ['Multimedia'])
 qt6_concurrent = dependency('qt6', modules: ['Concurrent'])
 
-executable('reproductor', 'main.cpp', 'VentanaPrincipal.cpp',
+# Integra los sprites de la barra de herramientas en el ejecutable
+qt6 = import('qt6')
+recursos_qt = qt6.compile_resources(sources: files('recursos.qrc'))
+
+executable('reproductor', 'main.cpp', 'VentanaPrincipal.cpp', recursos_qt,
     # Componentes visuales
     'componentes/Portada.cpp',
     'modelos/Canciones.cpp', 
