@@ -1,6 +1,7 @@
 #include "VentanaPrincipal.h"
 #include "controladores/ContEditCanciones.h"
 #include "controladores/ContEditInterp.h"
+#include "controladores/ContEditAlbumes.h"
 #include "controladores/ContImport.h"
 #include "controladores/ContRepro.h"
 #include "paneles/PanelAlbum.h"
@@ -81,13 +82,18 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
 
     // Inicialmente no hay ninguna canción seleccionada
     botonEditarCancion->setEnabled(false);
-    botonEditarInterprete->setEnabled(false);
+    // Sin canción seleccionada, este botón permite registrar una persona o grupo
+    botonEditarInterprete->setEnabled(true);
+    botonEditarInterprete->setToolTip("Agregar persona o grupo");
 
     // Habilitar o deshabilitar los botones según la selección
     auto actualizarEstadoEdicion = [botonEditarCancion, botonEditarInterprete, panelDerecho]() {
         bool haySeleccion = !panelDerecho->obtenerTabla()->selectionModel()->selectedIndexes().isEmpty();
         botonEditarCancion->setEnabled(haySeleccion);
-        botonEditarInterprete->setEnabled(haySeleccion);
+        botonEditarInterprete->setEnabled(true);
+        botonEditarInterprete->setToolTip(haySeleccion
+            ? "Editar intérprete de la canción seleccionada"
+            : "Agregar persona o grupo");
     };
 
     connect(panelDerecho->obtenerTabla()->selectionModel(), &QItemSelectionModel::selectionChanged,
@@ -101,6 +107,9 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
 
     // Delegar la edición de intérpretes a ContEditInterp
     new ControladorEditInterp(botonEditarInterprete, panelDerecho, this);
+
+    // Administrar los datos de los álbumes sin modificar archivos MP3
+    new ControladorEditAlbumes(barraHerramientas->obtenerBotonAdministrarAlbumes(), panelDerecho, this);
 
     // Delegar la importación de música a ContImport
     QToolButton *botonImportar = barraHerramientas->obtenerBotonImportarMusica();

@@ -121,3 +121,67 @@ VentanaAlbumes::VentanaAlbumes(const std::vector<DatosAlbum>& albumes, QWidget *
         QPushButton:hover { background-color: #86A94F; }
     )");
 }
+
+// Obtener los datos de los álbumes modificados en la tabla
+std::vector<DatosAlbum> VentanaAlbumes::obtenerAlbumes() const {
+    std::vector<DatosAlbum> resultado;
+    resultado.reserve(static_cast<std::size_t>(tablaAlbumes->rowCount()));
+
+    for (int fila = 0; fila < tablaAlbumes->rowCount(); ++fila) {
+        DatosAlbum album = albumesOriginales[static_cast<std::size_t>(fila)];
+        album.nombre = tablaAlbumes->item(fila, 0)->text().trimmed().toStdString();
+        album.year = tablaAlbumes->item(fila, 1)->text().toInt();
+        album.ruta = tablaAlbumes->item(fila, 2)->text().toStdString();
+        resultado.push_back(std::move(album));
+    }
+    return resultado;
+}
+
+// Validar los datos de la tabla y cerrar la ventana si son correctos
+void VentanaAlbumes::guardarCambios() {
+    for (int fila = 0; fila < tablaAlbumes->rowCount(); ++fila) {
+        const QString nombre = tablaAlbumes->item(fila, 0)->text().trimmed();
+        bool yearValido = false;
+        const int year = tablaAlbumes->item(fila, 1)->text().trimmed().toInt(&yearValido);
+
+        if (nombre.isEmpty()) {
+            QMessageBox::warning(this, "Nombre inválido",
+                "El nombre del álbum no puede estar vacío.");
+            tablaAlbumes->setCurrentCell(fila, 0);
+            tablaAlbumes->editItem(tablaAlbumes->item(fila, 0));
+            return;
+        }
+        if (tablaAlbumes->item(fila, 2)->text().trimmed().isEmpty()) {
+            QMessageBox::warning(this, "Carpeta inválida",
+                "Selecciona una carpeta para cada álbum.");
+            tablaAlbumes->setCurrentCell(fila, 2);
+            return;
+        }
+        if (!yearValido || year < 0 || year > 9999) {
+            QMessageBox::warning(this, "Año inválido",
+                "El año debe ser un número entre 0 y 9999. Usa 0 si es desconocido.");
+            tablaAlbumes->setCurrentCell(fila, 1);
+            tablaAlbumes->editItem(tablaAlbumes->item(fila, 1));
+            return;
+        }
+    }
+    accept();
+}
+
+// Abrir una ventana para seleccionar la carpeta de un álbum y actualizar la tabla
+void VentanaAlbumes::cambiarCarpeta() {
+    const int fila = tablaAlbumes->currentRow();
+    if (fila < 0 || tablaAlbumes->item(fila, 2) == nullptr) {
+        return;
+    }
+
+    const QString carpetaActual = tablaAlbumes->item(fila, 2)->text();
+    const QString carpeta = QFileDialog::getExistingDirectory(this,
+        "Seleccionar carpeta del álbum", carpetaActual);
+    if (carpeta.isEmpty()) {
+        return;
+    }
+
+    tablaAlbumes->item(fila, 2)->setText(carpeta);
+    tablaAlbumes->item(fila, 2)->setToolTip(carpeta);
+}
