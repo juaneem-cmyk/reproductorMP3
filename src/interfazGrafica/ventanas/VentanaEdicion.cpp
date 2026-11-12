@@ -114,48 +114,80 @@ VentanaEdit::VentanaEdit(const CancionVista& cancion, QWidget *parent) : QDialog
     connect(guardar, &QPushButton::clicked, this, &VentanaEdit::guardarCambios);
     connect(cancelar, &QPushButton::clicked, this, &QDialog::reject);
 
-    // Estilos
+    // Estética de madera y tocadiscos
     setStyleSheet(R"(
         QDialog {
-            background-color: #20251B;
-            color: #E6E5D7;
+            background-color: #2B1D13;
+            color: #F0DFC5;
         }
         QLabel {
-            color: #E6E5D7;
+            color: #F0DFC5;
+            background: transparent;
         }
         QGroupBox {
-            color: #E6E5D7;
-            border: 1px solid #805638;
-            border-radius: 5px;
-            margin-top: 8px;
-            padding-top: 8px;
+            color: #F5D9AD;
+            background-color: #3B281B;
+            border: 2px solid #80522F;
+            border-top-color: #B4844B;
+            border-left-color: #B4844B;
+            border-radius: 0px;
+            margin-top: 12px;
+            padding: 10px 8px 8px 8px;
             font-weight: bold;
         }
         QGroupBox::title {
             subcontrol-origin: margin;
-            left: 9px;
-            padding: 0 4px;
+            left: 10px;
+            padding: 0 6px;
+            color: #E6BD82;
+            font-family: "Press Start 2P";
+            font-size: 8px;
         }
         QLabel#vistaPortada {
-            background-color: #303B27;
-            border: 1px solid #805638;
+            background-color: #24180F;
+            border: 3px solid #98683B;
+            border-top-color: #C0945B;
+            border-left-color: #C0945B;
         }
         QLineEdit, QSpinBox {
-            background-color: #303B27;
-            color: #E6E5D7;
-            border: 1px solid #805638;
-            border-radius: 4px;
+            background-color: #2D2016;
+            color: #F6E7D0;
+            border: 2px solid #80522F;
+            border-top-color: #B4844B;
+            border-left-color: #B4844B;
+            border-radius: 0px;
             padding: 7px;
+            selection-background-color: #A66E37;
+            selection-color: #FFFFFF;
+        }
+        QLineEdit:focus, QSpinBox:focus {
+            border: 2px solid #D0A064;
         }
         QPushButton {
-            background-color: #5E873B;
-            color: white;
-            border: none;
-            border-radius: 4px;
+            background-color: #80522F;
+            color: #FFF0D8;
+            border: 2px solid #C0945B;
+            border-right-color: #4C301C;
+            border-bottom-color: #4C301C;
+            border-radius: 0px;
             padding: 8px 16px;
+            font-weight: bold;
         }
         QPushButton:hover {
-            background-color: #86A94F;
+            background-color: #A66E37;
+            border-color: #E0B77A;
+        }
+        QPushButton:pressed {
+            background-color: #5D3A21;
+            border-top-color: #4C301C;
+            border-left-color: #4C301C;
+            border-right-color: #C0945B;
+            border-bottom-color: #C0945B;
+            padding-top: 9px;
+            padding-left: 17px;
+        }
+        QDialogButtonBox QPushButton {
+            min-width: 92px;
         }
     )");
 }
