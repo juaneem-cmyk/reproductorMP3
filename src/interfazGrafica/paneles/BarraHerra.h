@@ -16,6 +16,7 @@ public:
     QToolButton *obtenerBotonLista() const;
     QToolButton *obtenerBotonGaleria() const;
     QToolButton *obtenerBotonImportarMusica() const;
+    QToolButton *obtenerBotonAdministrarAlbumes() const;
 
 private:
     QToolButton *botonEditarCancion;
@@ -24,5 +25,6 @@ private:
     QToolButton *botonLista;
     QToolButton *botonGaleria;
     QToolButton *botonImportarMusica;
+    QToolButton *botonAdministrarAlbumes;
 };
 #endif

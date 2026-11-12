@@ -112,4 +112,133 @@ bool CrearInterpretes::crearInterprete(const std::string& nombre, int idTipo,
             return revertir();
         }
     }
+
+    // Crear el registro común del intérprete
+    {
+        SentenciaSQLite insertar(nullptr, &sqlite3_finalize);
+        const char* insercion = "INSERT INTO performers (id_type, name) VALUES (?, ?);";
+        if (!preparar(baseDatos, insercion, insertar, mensajeError)) {
+            return revertir();
+        }
+        int codigo = sqlite3_bind_int(insertar.get(), 1, idTipo);
+        
+        if (codigo == SQLITE_OK) {
+            codigo = sqlite3_bind_text(insertar.get(), 2, nombreLimpio.c_str(), -1, SQLITE_TRANSIENT);
+        }
+
+        if (codigo != SQLITE_OK || sqlite3_step(insertar.get()) != SQLITE_DONE) {
+            mensajeError = sqlite3_errmsg(baseDatos);
+            return revertir();
+        }
+        idInterprete = static_cast<int>(sqlite3_last_insert_rowid(baseDatos));
+    }
+
+    // Crear la ficha específica aunque todavía no existan canciones o integrantes
+    if (idTipo == 0) {
+        SentenciaSQLite insertar(nullptr, &sqlite3_finalize);
+        const char* insercion =
+            "INSERT INTO persons (id_person, stage_name, real_name, birth_date, death_date) "
+            "VALUES (?, ?, ?, ?, ?);";
+
+        if (!preparar(baseDatos, insercion, insertar, mensajeError)) {
+            return revertir();
+        }
+        int codigo = sqlite3_bind_int(insertar.get(), 1, idInterprete);
+
+        if (codigo == SQLITE_OK) {
+            codigo = sqlite3_bind_text(insertar.get(), 2, nombreLimpio.c_str(), -1, SQLITE_TRANSIENT);
+        }
+
+        if (codigo == SQLITE_OK) {
+            codigo = vincularTexto(baseDatos, insertar.get(), 3, datosPersona.nombreReal, mensajeError)
+                ? SQLITE_OK : SQLITE_ERROR;
+        }
+
+        if (codigo == SQLITE_OK) {
+            codigo = vincularTexto(baseDatos, insertar.get(), 4, datosPersona.fechaNacimiento, mensajeError)
+                ? SQLITE_OK : SQLITE_ERROR;
+        }
+
+        if (codigo == SQLITE_OK) {
+            codigo = vincularTexto(baseDatos, insertar.get(), 5, datosPersona.fechaFallecimiento, mensajeError)
+                ? SQLITE_OK : SQLITE_ERROR;
+        }
+
+        if (codigo != SQLITE_OK || sqlite3_step(insertar.get()) != SQLITE_DONE) {
+            if (mensajeError.empty()) {
+                mensajeError = sqlite3_errmsg(baseDatos);
+            }
+            return revertir();
+        }
+    } else {
+        SentenciaSQLite insertar(nullptr, &sqlite3_finalize);
+        const char* insercion =
+            "INSERT INTO groups (id_group, name, start_date, end_date) VALUES (?, ?, ?, ?);";
+
+        if (!preparar(baseDatos, insercion, insertar, mensajeError)) {
+            return revertir();
+        }
+        int codigo = sqlite3_bind_int(insertar.get(), 1, idInterprete);
+
+        if (codigo == SQLITE_OK) {
+            codigo = sqlite3_bind_text(insertar.get(), 2, nombreLimpio.c_str(), -1, SQLITE_TRANSIENT);
+        }
+
+        if (codigo == SQLITE_OK) {
+            codigo = vincularTexto(baseDatos, insertar.get(), 3, datosGrupo.fechaCreacion, mensajeError)
+                ? SQLITE_OK : SQLITE_ERROR;
+        }
+
+        if (codigo == SQLITE_OK) {
+            codigo = vincularTexto(baseDatos, insertar.get(), 4, datosGrupo.fechaSeparacion, mensajeError)
+                ? SQLITE_OK : SQLITE_ERROR;
+        }
+
+        if (codigo != SQLITE_OK || sqlite3_step(insertar.get()) != SQLITE_DONE) {
+            if (mensajeError.empty()) {
+                mensajeError = sqlite3_errmsg(baseDatos);
+            }
+            return revertir();
+        }
+
+        // Vincular solo personas que continúen clasificadas como tales
+        SentenciaSQLite agregarIntegrante(nullptr, &sqlite3_finalize);
+        const char* insercionIntegrante =
+            "INSERT INTO in_group (id_person, id_group) "
+            "SELECT pe.id_person, ? FROM persons AS pe "
+            "INNER JOIN performers AS p ON p.id_performer = pe.id_person "
+            "WHERE pe.id_person = ? AND p.id_type = 0;";
+
+        if (!preparar(baseDatos, insercionIntegrante, agregarIntegrante, mensajeError)) {
+            return revertir();
+        }
+
+        // Iterar sobre los integrantes y agregarlos al grupo
+        for (int idPersona : integrantes) {
+            sqlite3_reset(agregarIntegrante.get());
+            sqlite3_clear_bindings(agregarIntegrante.get());
+            codigo = sqlite3_bind_int(agregarIntegrante.get(), 1, idInterprete);
+
+            if (codigo == SQLITE_OK) {
+                codigo = sqlite3_bind_int(agregarIntegrante.get(), 2, idPersona);
+            }
+
+            if (codigo != SQLITE_OK || sqlite3_step(agregarIntegrante.get()) != SQLITE_DONE) {
+                mensajeError = sqlite3_errmsg(baseDatos);
+                return revertir();
+            }
+
+            if (sqlite3_changes(baseDatos) != 1) {
+                mensajeError = "Uno de los integrantes seleccionados ya no está registrado como persona.";
+                return revertir();
+            }
+        }
+    }
+
+    if (sqlite3_exec(baseDatos, "COMMIT;", nullptr, nullptr, nullptr) != SQLITE_OK) {
+        mensajeError = sqlite3_errmsg(baseDatos);
+        return revertir();
+    }
+    mensajeError.clear();
+    return true;
 }
