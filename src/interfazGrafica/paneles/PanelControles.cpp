@@ -94,75 +94,97 @@ PanelControles::PanelControles(QWidget *parent) : QWidget(parent) {
     layoutPrincipal->addWidget(barraProgreso);
     layoutPrincipal->addLayout(layoutInferior);
 
-    // Estilos del reproductor principal
+    // Estilo de inventario: franja de tierra y controles cuadrados con relieve
     setStyleSheet(R"(
         QWidget#panelControles {
-            background-color: #704522;
-            border: none;
+            background-color: #684327;
+            border-top: 3px solid #B47A43;
+            border-left: none;
+            border-right: none;
+            border-bottom: none;
         }
         QLabel {
-            color: #F1EBD8;
+            color: #F2EBD5;
             background: transparent;
         }
+        QLabel#tituloCancion {
+            font-weight: bold;
+        }
         QPushButton {
-            background-color: #648F3D;
-            color: #F1EBD8;
-            border: 1px solid #95622F;
-            border-radius: 4px;
+            background-color: #527C37;
+            color: #F2EBD5;
+            border: 2px solid;
+            border-color: #93B968 #314A2B #314A2B #93B968;
+            border-radius: 0px;
             padding: 3px 7px;
         }
         QPushButton:hover {
-            background-color: #80A94A;
+            background-color: #6D9844;
+            border-color: #B7D58A #456332 #456332 #B7D58A;
         }
         QPushButton:pressed {
-            background-color: #426536;
+            background-color: #426133;
+            border-color: #314A2B #93B968 #93B968 #314A2B;
+            padding-top: 5px;
+            padding-left: 9px;
+        }
+        QPushButton:disabled {
+            background-color: #46543B;
+            color: #A9B19A;
+            border-color: #65745A #35432D #35432D #65745A;
         }
         QToolButton#botonVolumen {
-            background-color: #648F3D;
-            color: #F1EBD8;
-            border: 1px solid #95622F;
-            border-radius: 4px;
+            background-color: #527C37;
+            color: #F2EBD5;
+            border: 2px solid;
+            border-color: #93B968 #314A2B #314A2B #93B968;
+            border-radius: 0px;
             padding: 3px;
         }
         QToolButton#botonVolumen:hover {
-            background-color: #80A94A;
+            background-color: #6D9844;
+            border-color: #B7D58A #456332 #456332 #B7D58A;
+        }
+        QToolButton#botonVolumen:pressed {
+            background-color: #426133;
+            border-color: #314A2B #93B968 #93B968 #314A2B;
         }
         QSlider#barraProgreso {
             background: transparent;
             padding: 0px;
         }
         QSlider#barraProgreso::groove:horizontal {
-            height: 4px;
-            background-color: #95622F;
-            border: none;
+            height: 5px;
+            background-color: #49301F;
+            border: 1px solid #9C683B;
         }
         QSlider#barraProgreso::sub-page:horizontal {
-            background-color: #B98B53;
+            background-color: #C18A4E;
         }
         QSlider#barraProgreso::handle:horizontal {
-            width: 10px;
-            margin: -3px 0px;
-            border: 1px solid #F1EBD8;
-            border-radius: 5px;
-            background-color: #648F3D;
+            width: 12px;
+            margin: -4px 0px;
+            border: 2px solid #F2EBD5;
+            border-radius: 0px;
+            background-color: #78A848;
         }
         QSlider#barraProgreso:disabled::groove:horizontal {
-            background-color: #95622F;
+            background-color: #49301F;
         }
         QSlider#controlVolumen::groove:horizontal {
-            height: 4px;
-            background-color: #95622F;
-            border: none;
+            height: 5px;
+            background-color: #49301F;
+            border: 1px solid #9C683B;
         }
         QSlider#controlVolumen::sub-page:horizontal {
-            background-color: #B98B53;
+            background-color: #C18A4E;
         }
         QSlider#controlVolumen::handle:horizontal {
-            width: 10px;
+            width: 12px;
             margin: -4px 0px;
-            border: 1px solid #F1EBD8;
-            border-radius: 5px;
-            background-color: #648F3D;
+            border: 2px solid #F2EBD5;
+            border-radius: 0px;
+            background-color: #78A848;
         }
     )");
 }

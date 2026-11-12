@@ -1,4 +1,5 @@
 #include "Portada.h"
+#include "../TemaPrincipal.h"
 #include <QLabel>
 #include <QResizeEvent>
 #include <QSizePolicy>
@@ -13,6 +14,7 @@ Portada::Portada(QWidget *parent) : QFrame(parent) {
     portada->setObjectName("portada");
     portada->setAlignment(Qt::AlignCenter);
     portada->setText("PORTADA");
+    portada->setFont(TemaPrincipal::fuenteEncabezado(10));
 }
 
 // Establece la imagen de la portada a partir de un QImage

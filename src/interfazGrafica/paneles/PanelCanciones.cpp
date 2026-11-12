@@ -1,5 +1,6 @@
 #include "PanelCanciones.h"
 #include "../modelos/Canciones.h"
+#include "../TemaPrincipal.h"
 #include <QVBoxLayout>
 #include <QTableView>
 #include <QAbstractItemView>
@@ -9,6 +10,7 @@
 #include <QSortFilterProxyModel>
 #include <QItemSelectionModel>
 #include <QSize>
+#include <QFont>
 #include <QFontMetrics>
 #include <QEvent>
 #include <QApplication>
@@ -76,10 +78,12 @@ PanelCanciones::PanelCanciones(QWidget *parent) : QWidget(parent) {
 
     // Crear la tabla de canciones
     tablaCanciones = new QTableView(this);
+    tablaCanciones->setObjectName("tablaCanciones");
     tablaCanciones->setModel(filtroCanciones);
 
     // Crear la vista de galería
     galeriaCanciones = new GaleriaCentrada(this);
+    galeriaCanciones->setObjectName("galeriaCanciones");
     galeriaCanciones->setModel(filtroCanciones);
     galeriaCanciones->setSelectionMode(QAbstractItemView::SingleSelection);
     galeriaCanciones->setSelectionBehavior(QAbstractItemView::SelectItems);
@@ -116,6 +120,7 @@ PanelCanciones::PanelCanciones(QWidget *parent) : QWidget(parent) {
 
     // Ajustar columnas
     QHeaderView *encabezado = tablaCanciones->horizontalHeader();
+    encabezado->setFont(TemaPrincipal::fuenteEncabezado(9));
     encabezado->setSectionResizeMode(0, QHeaderView::Stretch);
     encabezado->setSectionResizeMode(1, QHeaderView::Interactive);
     encabezado->setSectionResizeMode(2, QHeaderView::Interactive);
@@ -136,57 +141,69 @@ PanelCanciones::PanelCanciones(QWidget *parent) : QWidget(parent) {
     tablaCanciones->setColumnWidth(4, anchoDuracion + 20);
     encabezado->setDefaultAlignment(Qt::AlignCenter);
     tablaCanciones->verticalHeader()->setDefaultSectionSize(48);
+    tablaCanciones->setFont(QFont("DejaVu Sans", 9));
+    galeriaCanciones->setFont(QFont("DejaVu Sans", 9));
 
     // Agregar ambas vistas al panel
     layoutPrincipal->addWidget(vistasCanciones);
 
-    // Estilos de la tabla
+    // Estilo de la tabla: encabezados retro y divisiones rectas inspiradas en bloques de Minecraft
     tablaCanciones->setStyleSheet(R"(
         QTableView {
-            background-color: #2D3D2C;
-            alternate-background-color: #374B32;
-            color: #F1EBD8;
+            background-color: #263A27;
+            alternate-background-color: #30482F;
+            color: #F2EBD5;
             border: none;
             selection-background-color: #648F3D;
             selection-color: #FFFFFF;
+            outline: none;
             font-size: 13px;
+        }
+        QTableView::item {
+            padding: 4px 6px;
+            border: none;
         }
         QTableView::item:selected {
             background-color: #648F3D;
             color: #FFFFFF;
+            border: 1px solid #A9C978;
         }
         QTableView::item:hover {
             background-color: #426536;
         }
         QHeaderView::section {
-            background-color: #426536;
-            color: #F1EBD8;
-            border: none;
-            border-bottom: 2px solid #95622F;
-            padding: 10px;
+            background-color: #4B7138;
+            color: #F2EBD5;
+            border-style: solid;
+            border-width: 0px 1px 3px 0px;
+            border-color: transparent #344C2E #A36D3C transparent;
+            padding: 9px 7px;
             font-weight: bold;
         }
     )");
 
-    // Estilo de la galería de portadas
+    // La galería conserva las portadas como protagonistas
     galeriaCanciones->setStyleSheet(R"(
         QListView {
-            background-color: #2D3D2C;
-            color: #F1EBD8;
+            background-color: #263A27;
+            color: #F2EBD5;
             border: none;
-            font-size: 13px;
             outline: none;
+            font-size: 13px;
         }
         QListView::item {
             padding: 5px;
-            border-radius: 5px;
+            margin: 1px;
+            border: 2px solid transparent;
         }
         QListView::item:selected {
-            background-color: #648F3D;
+            background-color: #426536;
             color: #FFFFFF;
+            border: 2px solid #A9C978;
         }
         QListView::item:hover {
-            background-color: #426536;
+            background-color: #354F30;
+            border: 2px solid #789D4C;
         }
     )");
 

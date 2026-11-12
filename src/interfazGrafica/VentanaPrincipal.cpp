@@ -15,6 +15,7 @@
 #include <QHBoxLayout>
 #include <QTableView>
 #include <QLineEdit>
+#include <QFont>
 #include <Qt>
 
 VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
@@ -34,6 +35,9 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     // Reproductor
     QWidget *areaTrabajo = new QWidget(contenedor);
     areaTrabajo->setObjectName("areaTrabajo");
+    // Tipografía cómoda para los datos musicales; los encabezados usan una fuente retro
+    QFont fuenteContenido("DejaVu Sans", 10);
+    areaTrabajo->setFont(fuenteContenido);
     QHBoxLayout *layoutPrincipal = new QHBoxLayout(areaTrabajo);
     // El contenido comienza inmediatamente debajo de la barra superior
     layoutPrincipal->setContentsMargins(12, 0, 12, 0);
@@ -121,41 +125,34 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent) : QMainWindow(parent) {
     layout->addWidget(panelControles);
     new ControladorRepUI(panelControles, panelIzquierdo, panelDerecho, this);
 
-    // Estilos iniciales
+    // Identidad visual de la ventana principal: verdes de césped y marrones de tierra
     setStyleSheet(R"(
         QMainWindow {
-            background-color: #263B25;
+            background-color: #263A27;
         }
         QWidget#contenedorPrincipal {
-            background-color: #263B25;
+            background-color: #263A27;
         }
         QWidget#areaTrabajo {
-            background-color: #263B25;
+            background-color: #263A27;
         }
         QWidget#panelIzquierdo {
-            background-color: #35472E;
-            border-left: 1px solid #95622F;
-            border-right: 1px solid #95622F;
-            border-top: none;
-            border-bottom: none;
+            background-color: #314A30;
+            border: none;
         }
         QFrame#marcoPortada {
             background-color: transparent;
             border: none;
         }
         QLabel#portada {
-            background-color: #426536;
-            color: #F1EBD8;
-            font-size: 20px;
-            font-weight: bold;
-            border: 1px solid #95622F;
+            background-color: #45683A;
+            color: #F2EBD5;
+            border: 2px solid #956332;
+            padding: 2px;
         }
         QWidget#panelDerecho {
-            background-color: #35472E;
-            border-left: 1px solid #95622F;
-            border-right: 1px solid #95622F;
-            border-top: none;
-            border-bottom: none;
+            background-color: #314A30;
+            border: none;
         }
     )");
     // Establecer el contenedor principal como el widget central de la ventana
