@@ -251,51 +251,112 @@ VentanaInterprete::VentanaInterprete(const CancionVista& cancion, const DatosPer
     connect(guardar, &QPushButton::clicked, this, &VentanaInterprete::guardarCambios);
     connect(cancelar, &QPushButton::clicked, this, &QDialog::reject);
 
+    // Estética de inventario
     setStyleSheet(R"(
-        QDialog { background-color: #20251B; color: #E6E5D7; }
-        QLabel { color: #E6E5D7; }
+        QDialog {
+            background-color: #555555;
+            color: #F1F1F1;
+        }
+        QLabel {
+            color: #F1F1F1;
+            background: transparent;
+        }
         QGroupBox {
-            color: #E6E5D7;
-            border: 1px solid #805638;
-            border-radius: 5px;
-            margin-top: 8px;
-            padding-top: 8px;
+            color: #FFFFFF;
+            background-color: #686868;
+            border: 2px solid #3B3B3B;
+            border-top-color: #D0D0D0;
+            border-left-color: #D0D0D0;
+            border-radius: 0px;
+            margin-top: 12px;
+            padding: 10px 8px 8px 8px;
             font-weight: bold;
         }
         QGroupBox::title {
             subcontrol-origin: margin;
-            left: 9px;
-            padding: 0 4px;
+            left: 10px;
+            padding: 0 6px;
+            color: #FFFFFF;
+            font-family: "Press Start 2P";
+            font-size: 8px;
         }
         QLabel#vistaImagenInterprete {
-            background-color: #303B27;
-            border: 1px solid #805638;
+            background-color: #414141;
+            border: 3px solid #BEBEBE;
+            border-right-color: #353535;
+            border-bottom-color: #353535;
         }
         QLineEdit, QComboBox, QDateEdit, QListWidget {
-            background-color: #303B27;
-            color: #E6E5D7;
-            border: 1px solid #805638;
-            border-radius: 4px;
+            background-color: #454545;
+            color: #FFFFFF;
+            border: 2px solid #333333;
+            border-top-color: #BDBDBD;
+            border-left-color: #BDBDBD;
+            border-radius: 0px;
             padding: 7px;
+            selection-background-color: #A0A0A0;
+            selection-color: #202020;
+        }
+        QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QListWidget:focus {
+            border: 2px solid #E0E0E0;
         }
         QComboBox QAbstractItemView {
-            background-color: #303B27;
-            color: #E6E5D7;
-            selection-background-color: #5E873B;
+            background-color: #454545;
+            color: #FFFFFF;
+            border: 2px solid #BDBDBD;
+            selection-background-color: #B5B5B5;
+            selection-color: #202020;
+        }
+        QListWidget::item {
+            padding: 4px;
+            border-bottom: 1px solid #5A5A5A;
         }
         QListWidget::item:selected {
-            background-color: #5E873B;
-            color: white;
+            background-color: #B5B5B5;
+            color: #202020;
+            border: 1px solid #EEEEEE;
         }
-        QCheckBox { color: #E6E5D7; }
+        QCheckBox {
+            color: #F1F1F1;
+            spacing: 7px;
+        }
+        QCheckBox::indicator {
+            width: 16px;
+            height: 16px;
+            background-color: #454545;
+            border: 2px solid #D0D0D0;
+            border-right-color: #333333;
+            border-bottom-color: #333333;
+        }
+        QCheckBox::indicator:checked {
+            background-color: #BEBEBE;
+            border: 2px solid #F0F0F0;
+        }
         QPushButton {
-            background-color: #5E873B;
-            color: white;
-            border: none;
-            border-radius: 4px;
+            background-color: #858585;
+            color: #FFFFFF;
+            border: 2px solid #D5D5D5;
+            border-right-color: #353535;
+            border-bottom-color: #353535;
+            border-radius: 0px;
             padding: 8px 16px;
+            font-weight: bold;
         }
-        QPushButton:hover { background-color: #86A94F; }
+        QPushButton:hover {
+            background-color: #A0A0A0;
+            border-color: #F0F0F0;
+            color: #202020;
+        }
+        QPushButton:pressed {
+            background-color: #626262;
+            border-top-color: #353535;
+            border-left-color: #353535;
+            border-right-color: #D5D5D5;
+            border-bottom-color: #D5D5D5;
+        }
+        QDialogButtonBox QPushButton {
+            min-width: 92px;
+        }
     )");
 }
 
