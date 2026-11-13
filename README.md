@@ -68,16 +68,33 @@ Qt Creator es opcional; no es necesario para compilar el proyecto desde la termi
 
 El entorno de referencia utilizó Qt 6.12.0 y el backend FFmpeg 9.0.1 de Qt Multimedia. Otras versiones de Qt podrían funcionar, pero no se consideran verificadas por las pruebas de este proyecto.
 
-## Compatibilidad entre instalaciones de Qt
+## Compatibilidad de Qt Multimedia y selección de la versión de Qt
 
-Durante el desarrollo se encontró un error al cambiar de canciones en el reproductor provocado por la versión utilizada de Qt, el error
-aparentemente no afectaba a la funcionalidad, sin embargo, para evitar los Warnings se opto por cambiar de versión.
+Durante las primeras pruebas se utilizó Qt 6.4.2, instalado desde los repositorios de Linux Mint. La reproducción funcionaba con el backend GStreamer, pero al conectar la salida de audio y cambiar de canción aparecían repetidamente mensajes de GLib/GObject similares a:
 
-**La solución utilizada en el entorno de desarrollo fue seleccionar Qt 6.12.0 de forma consistente tanto al configurar/compilar como al ejecutar la aplicación.** No se concluyó que Qt 6.4.2 sea incompatible en general; simplemente, esa versión del sistema no fue la combinación validada para la entrega. La compatibilidad comprobada corresponde al entorno de referencia indicado en este README.
+```text
+GLib-GObject-CRITICAL:
+g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+```
+
+Para separar un posible problema de GStreamer de uno propio del reproductor, se hicieron pruebas con el backend fuera de Qt y desde Qt Multimedia. La prueba directa con `gst-launch` podía reproducir audio sin mostrar esos avisos. En cambio, al utilizar GStreamer desde Qt Multimedia, los mensajes de GLib/GObject volvían a aparecer al reproducir o cambiar de pista. Durante el rastreo también apareció el complemento `libgstpipewire.so`, por lo que la integración entre Qt Multimedia, GStreamer y PipeWire se consideró una posible zona del problema.
+
+También se probó el backend FFmpeg disponible en esa instalación de Qt 6.4.2. En esa configuración era posible cambiar de pista, pero la reproducción no llegaba a funcionar correctamente: no se escuchaba audio, el progreso no avanzaba y en algunos intentos Qt Multimedia informaba `ResourceError: Could not open file`. Por ello, cambiar únicamente de GStreamer a FFmpeg dentro de Qt 6.4.2 no resolvió el problema.
+
+La distribución de Linux Mint utilizada ofrecía Qt 6.4.2 en sus repositorios y no proporcionaba una versión más reciente mediante el gestor de paquetes configurado. Para probar una combinación diferente se instaló Qt 6.12.0 de forma independiente mediante Qt Online Installer. Esta instalación incluía Qt Multimedia con el backend FFmpeg 9.0.1. Se adoptó esa combinación como entorno de referencia para compilar y ejecutar el reproductor.
+
+Es importante distinguir el resultado de las pruebas: **no se concluyó que Qt 6.4.2 sea incompatible en general ni que GStreamer tenga un defecto por sí mismo**. Lo que se observó fue que la combinación Qt 6.4.2 + GStreamer producía advertencias al reproducir desde Qt Multimedia, mientras que la combinación Qt 6.4.2 + FFmpeg no permitió completar correctamente la reproducción en el entorno probado. Por eso se eligió Qt 6.12.0 con FFmpeg 9.0.1 como configuración de referencia del proyecto.
+
+### Resumen de las pruebas
+
+- **GStreamer ejecutado directamente:** podía reproducir audio sin los avisos observados en la aplicación.
+- **Qt 6.4.2 con GStreamer:** reproducía desde el reproductor, pero emitía advertencias `g_object_unref` de GLib/GObject al conectar la salida o cambiar de pista. El complemento `libgstpipewire.so` apareció durante el diagnóstico, aunque no se confirmó que fuera la única causa.
+- **Qt 6.4.2 con FFmpeg:** permitía cambiar de pista, pero no se consiguió reproducir audio ni actualizar correctamente el progreso; también apareció `ResourceError: Could not open file`.
+- **Qt 6.12.0 con FFmpeg 9.0.1:** se seleccionó como entorno de referencia para la versión final del proyecto.
 
 ### Seleccionar una instalación concreta de Qt
 
-Suponiendo que Qt 6.12.0 está instalado en `~/Qt/6.12.0/gcc_64`, configurar las variables de entorno en la terminal desde la que se compilará y ejecutará el proyecto:
+Para evitar mezclar los encabezados, bibliotecas y complementos de Qt 6.4.2 con los de Qt 6.12.0, se debe utilizar una sola instalación tanto al configurar y compilar como al ejecutar la aplicación. Suponiendo que Qt 6.12.0 está instalado en `~/Qt/6.12.0/gcc_64`, configurar las variables de entorno en la terminal:
 
 ```bash
 export QT_ROOT="$HOME/Qt/6.12.0/gcc_64"
@@ -97,15 +114,17 @@ Comprobar que los módulos de Qt se resuelven desde la misma instalación:
 pkg-config --modversion Qt6Widgets Qt6Multimedia Qt6Concurrent
 ```
 
-Los tres módulos deben mostrar la misma versión, en el entorno probado `6.12.0`. Si alguno devuelve `6.4.2` u otra versión, revisar `PATH` y `PKG_CONFIG_PATH` antes de configurar Meson.
+Los tres módulos deben mostrar la misma versión; en el entorno de referencia, `6.12.0`. Si alguno devuelve `6.4.2` u otra versión, revisar las variables `PATH` y `PKG_CONFIG_PATH` antes de configurar Meson.
 
-Si se cambia de instalación o versión de Qt después de haber configurado el proyecto, conviene eliminar el directorio de compilación para que Meson no reutilice las dependencias detectadas anteriormente:
+Si se cambia de instalación o versión de Qt después de haber configurado el proyecto, se recomienda eliminar el directorio de compilación para que Meson no reutilice las dependencias detectadas anteriormente:
 
 ```bash
 rm -rf build-qt612
+meson setup build-qt612
+meson compile -C build-qt612
 ```
 
-Después se puede volver a ejecutar la configuración y compilación indicadas más adelante. Este comando elimina únicamente los archivos generados de compilación dentro de `build-qt612`, no elimina el código fuente ni la base de datos de la biblioteca.
+Este comando elimina únicamente los archivos generados dentro de `build-qt612`; no elimina el código fuente ni la base de datos de la biblioteca. También es importante ejecutar el reproductor desde la terminal donde se configuraron las mismas variables de entorno, para que cargue los complementos y bibliotecas de Qt 6.12.0.
 
 ## Tipografía opcional
 

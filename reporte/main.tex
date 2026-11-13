@@ -1,4 +1,4 @@
-\documentclass[12pt,a4paper]{article}
+\documentclass[11pt,a4paper]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[spanish,mexico]{babel}
@@ -16,7 +16,7 @@
 
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{Proyecto de Chat TCP}
+\fancyhead[L]{Proyecto de Reproductor MP3}
 \fancyhead[R]{Facultad de Ciencias, UNAM}
 \fancyfoot[C]{\thepage}
 
@@ -27,7 +27,7 @@
     citecolor=black
 }
 
-\title{Proyecto 2: Reproductorr MP3}
+\title{Proyecto 2: Reproductor MP3}
 \author{Espinosa Meléndez Juan Ernesto}
 \date{\today}
 
@@ -68,6 +68,8 @@
 \end{center}
 
 \newpage
+\tableofcontents
+\newpage
 
 \section{Introducción}
 
@@ -83,15 +85,21 @@ Además de la importación, el proyecto permite editar canciones y álbumes, cla
 
 El principal reto de análisis fue separar los archivos musicales de la información que la aplicación administra. Cada canción conserva una ruta hacia su archivo MP3, pero los datos que se editan desde la interfaz pertenecen a la base de datos. De esta manera es posible corregir un título, cambiar el intérprete o modificar el año de un álbum sin volver a escribir las etiquetas del archivo original.
 
-Se eligió C++ para desarrollar tanto el minero como la aplicación gráfica porque en la investigación previa a programar encontre algunos repositorios y tutoriales que realizaban proyectos similares utilizando este lenguaje, lo mismo aplicó para Qt. Qt 6 proporciona los componentes de interfaz y reproducción; TagLib permite interpretar las etiquetas ID3; SQLite conserva la biblioteca musical; y Meson junto con Ninja coordina la compilación. La base de datos utiliza el esquema proporcionado para el proyecto, por lo que la implementación se adaptó a sus tablas sin modificar su estructura.
+Se eligió C++ para desarrollar tanto el minero como la aplicación gráfica porque en la investigación previa a programar encontré algunos repositorios y tutoriales que realizaban proyectos similares utilizando este lenguaje, lo mismo aplicó para Qt. Qt 6 proporciona los componentes de interfaz y reproducción; TagLib permite interpretar las etiquetas ID3; SQLite conserva la biblioteca musical; y Meson junto con Ninja coordina la compilación. La base de datos utiliza el esquema proporcionado para el proyecto, por lo que la implementación se adaptó a sus tablas sin modificar su estructura.
 
-También la importación pude realizarse de dos maneras: desde el botón correspondiente de la interfaz o mediante un ejecutable independiente en la terminal. Esto evita que el usuario tenga que ejecutar manualmente el minero cada vez que quiera incorporar música a su biblioteca.
+También la importación puede realizarse de dos maneras: desde el botón correspondiente de la interfaz o mediante un ejecutable independiente en la terminal. Esto evita que el usuario tenga que ejecutar manualmente el minero cada vez que quiera incorporar música a su biblioteca.
 
 \subsection{Modelado}
 
 La organización se dividió por responsabilidades. El minero contiene la exploración de directorios, la lectura de metadatos y la coordinación del registro. La interfaz gráfica se separa en ventanas, paneles, un modelo de canciones y controladores que coordinan las acciones del usuario. Finalmente, los objetos de acceso a datos concentran las consultas y modificaciones sobre SQLite.
 
-Una decisión importante fue reutilizar el servicio  importar musica desde ambos puntos de entrada. El ejecutable de terminal y el controlador de importación de la interfaz invocan la misma implementación; así se evita mantener dos algoritmos distintos que podrían producir resultados diferentes. En la interfaz, la importación se ejecuta en segundo plano mediante Qt Concurrent, para no bloquear la ventana mientras se recorren directorios y se leen archivos.
+Una decisión importante fue reutilizar el servicio  importar música desde ambos puntos de entrada. El ejecutable de terminal y el controlador de importación de la interfaz invocan la misma implementación; así se evita mantener dos algoritmos distintos que podrían producir resultados diferentes. En la interfaz, la importación se ejecuta en segundo plano mediante Qt Concurrent, para no bloquear la ventana mientras se recorren directorios y se leen archivos.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.55\textwidth]{interfazDibujo.jpg}
+    \caption{Dibujo que utilicé de referencia}
+\end{figure}
 
 \section{Descripción general del sistema}
 
@@ -101,13 +109,49 @@ La segunda forma de acceso es el minero independiente. Este recibe desde la term
 
 Ambos caminos llegan a SQLite mediante \texttt{ConexionSQLite}. Los repositorios y objetos DAO consultan o modifican la base de datos, mientras que \texttt{Rutas} determina la ubicación de los datos y del esquema SQL. La reproducción sigue un flujo separado: \texttt{ControladorRepUI} coordina la interfaz y \texttt{ControladorReproduccion} encapsula el uso de \texttt{QMediaPlayer} y \texttt{QAudioOutput}.
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.55\textwidth]{diagramaGeneral.png}
+\end{figure}
+
 \section{Operaciones principales}
 
-El programa no necesita un protocolo de comunicación entre procesos como el proyecto anterior. La interacción ocurre mediante la interfaz gráfica o mediante argumentos enviados al ejecutable del minero. Las operaciones principales se resumen en el cuadro.
+El programa no necesita un protocolo de comunicación entre procesos como el proyecto anterior. La interacción ocurre mediante la interfaz gráfica o mediante argumentos enviados al ejecutable del minero. Las operaciones principales se resumen en el siguiente cuadro.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|p{3.5cm}|p{10cm}|}
+        \hline
+        Inicializar base de datos & Crea la base SQLite a partir del esquema original, si todavía no existe. \\ \hline
+        Importar desde la interfaz & Permite seleccionar un directorio y registrar las canciones encontradas sin bloquear la ventana. \\ \hline
+        Ejecutar el minero & Recibe una ruta de archivo o directorio desde la terminal y realiza la misma importación. \\ \hline
+        Buscar canciones & Filtra la biblioteca por información como título, artista, álbum y año. \\ \hline
+        Reproducir & Permite iniciar, pausar, cambiar de pista, ajustar el volumen y mover la posición de reproducción. \\ \hline
+        Editar canciones & Modifica los datos de una pista seleccionada y guarda los cambios en SQLite. \\ \hline
+        Administrar álbumes & Permite modificar el nombre, año y ruta registrada de un álbum. \\ \hline
+        Administrar intérpretes & Permite registrar y editar personas, grupos e integrantes, incluso sin canciones asociadas. \\ \hline
+        Cambiar de vista & Muestra la biblioteca como lista o galería de portadas. \\ \hline
+    \end{tabular}
+\end{table}
 
 \section{Implementación}
 
 \subsection{Tecnologías utilizadas}
+
+Las principales tecnologías y bibliotecas utilizadas se resumen en el siguiente cuadro.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|p{3.5cm}|p{10cm}|}
+        \hline
+        C++17 & Lenguaje utilizado para desarrollar el minero, la persistencia y la interfaz. \\ \hline
+        Qt 6 & Widgets para la interfaz, Multimedia para reproducir audio y Concurrent para ejecutar la importación en segundo plano. \\ \hline
+        TagLib & Lectura de etiquetas ID3v2.4.0 y de información de los archivos MP3. \\ \hline
+        SQLite3 & Almacenamiento de canciones, álbumes, intérpretes y relaciones entre personas y grupos. \\ \hline
+        FFmpeg & Backend multimedia disponible mediante la instalación de Qt Multimedia utilizada en las pruebas. \\ \hline
+        Meson y Ninja & Configuración y compilación del proyecto. \\ \hline
+    \end{tabular}
+\end{table}
 
 \subsection{Base de datos y persistencia}
 
@@ -143,9 +187,79 @@ El proyecto se desarrolló y probó en Linux Mint de arquitectura x86\_64. Se re
 
 \subsection{Compatibilidad entre instalaciones de Qt}
 
+Durante el desarrollo se utilizó inicialmente Qt 6.4.2, versión proporcionada por los repositorios de Linux Mint. Sin embargo, al probar la reproducción y el cambio de canciones comenzaron a aparecer advertencias relacionadas con Qt Multimedia y GLib. El error más frecuente era:
+
+\begin{verbatim}
+GLib-GObject-CRITICAL:
+g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+\end{verbatim}
+
+Al revisar la salida de Qt Multimedia se observó que el sistema tenía disponibles los backends FFmpeg y GStreamer, pero estaba cargando GStreamer. Las advertencias aparecían después de conectar la salida de audio y se repetían al cambiar de canción.
+
+Para identificar el origen se probaron ambos backends por separado. GStreamer podía reproducir archivos directamente mediante \texttt{gst-launch}, sin presentar las mismas advertencias. Sin embargo, al utilizarlo desde Qt Multimedia aparecía nuevamente el error de GLib. Esto apuntaba a un problema en la interacción entre Qt Multimedia y el backend GStreamer, aunque no fue posible determinar una causa interna definitiva.
+
+También se probó FFmpeg desde Qt Multimedia. Aunque el backend podía cargarse y permitía cambiar de pista, en las pruebas realizadas no conseguía reproducir el audio ni actualizar correctamente el progreso. En algunos intentos se obtuvo el error \texttt{ResourceError: Could not open file}. Por tanto, tampoco fue posible utilizarlo satisfactoriamente con la configuración inicial.
+
+Ante esta situación se decidió instalar una versión independiente de Qt mediante Qt Online Installer. Se seleccionó Qt 6.12.0 y se utilizó el backend FFmpeg 9.0.1 como entorno de referencia para el proyecto. La instalación original de Qt 6.4.2 proporcionada por Linux Mint se mantuvo disponible, pero dejó de utilizarse para compilar y ejecutar el reproductor.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|p{3.5cm}|p{10cm}|}
+        \hline
+        Qt 6.4.2 & Versión proporcionada por los repositorios de Linux Mint. Fue la instalación utilizada durante las primeras pruebas de reproducción. \\ \hline
+        GStreamer & Reproducía correctamente de forma independiente, pero al utilizarse desde Qt Multimedia aparecían advertencias de GLib. \\ \hline
+        FFmpeg & Se probó desde Qt Multimedia, pero la configuración inicial presentó errores al abrir archivos y no permitió comprobar correctamente la reproducción. \\ \hline
+        Qt 6.12.0 & Versión instalada mediante Qt Online Installer y seleccionada como entorno de compilación y ejecución del proyecto. \\ \hline
+        FFmpeg 9.0.1 & Backend multimedia utilizado en el entorno de referencia del proyecto. \\ \hline
+    \end{tabular}
+\end{table}
+
+Para evitar que las herramientas mezclen componentes de ambas instalaciones, se configuraron las variables de entorno para utilizar Qt 6.12.0 de manera consistente:
+
+\begin{verbatim}
+export QT_ROOT="$HOME/Qt/6.12.0/gcc_64"
+export PATH="$QT_ROOT/bin:$PATH"
+export PKG_CONFIG_PATH="$QT_ROOT/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+export LD_LIBRARY_PATH="$QT_ROOT/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export QT_PLUGIN_PATH="$QT_ROOT/plugins"
+\end{verbatim}
+
+La versión de los módulos utilizados se puede comprobar mediante:
+
+\begin{verbatim}
+pkg-config --modversion Qt6Widgets Qt6Multimedia Qt6Concurrent
+\end{verbatim}
+
+Los tres módulos deben corresponder a la misma instalación. Si se cambia la versión de Qt después de configurar el proyecto, es necesario volver a generar el directorio de compilación de Meson para evitar que conserve las rutas de las dependencias anteriores:
+
+\begin{verbatim}
+rm -rf build-qt612
+meson setup build-qt612
+meson compile -C build-qt612
+\end{verbatim}
+
+De esta manera se estableció un entorno de desarrollo consistente, evitando mezclar bibliotecas, encabezados y complementos multimedia de distintas instalaciones de Qt.
 
 \subsection{Organización del proyecto}
 
+El código fuente se divide en directorios según la responsabilidad de cada componente. La organización principal se resume a continuación.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|p{7cm}|p{9.5cm}|}
+        \hline
+        \texttt{src/baseDatos/} & Conexión SQLite, inicialización, rutas y esquema de la base de datos. \\ \hline
+        \texttt{src/baseDatos/repositorio/} & Consultas y modificaciones de canciones, álbumes e intérpretes mediante objetos DAO. \\ \hline
+        \texttt{src/minero/} & Punto de entrada del minero, exploración de directorios, lectura de metadatos y servicio de importación. \\ \hline
+        \texttt{src/interfazGrafica/componentes/} & Componentes visuales reutilizables, como la portada. \\ \hline
+        \texttt{src/interfazGrafica/modelos/} & Modelo que proporciona los datos de las canciones a las vistas. \\ \hline
+        \texttt{src/interfazGrafica/paneles/} & Barra de herramientas, lista y galería de canciones, panel de álbum y controles de reproducción. \\ \hline
+        \texttt{src/interfazGrafica/ventanas/} & Ventanas para editar canciones, intérpretes y álbumes. \\ \hline
+        \texttt{src/interfazGrafica/controladores/} & Coordinación de las acciones de la interfaz, importación, edición y reproducción. \\ \hline
+        \texttt{src/interfazGrafica/servicios/} & Gestión de imágenes personalizadas. \\ \hline
+        \texttt{src/interfazGrafica/reproduccion/} & Control de la reproducción mediante Qt Multimedia. \\ \hline
+    \end{tabular}
+\end{table}
 
 \section{Refactorización y patrones de diseño}
 
@@ -184,17 +298,21 @@ Qt utiliza el mecanismo de señales y slots para comunicar cambios entre compone
 La importación desde la interfaz se ejecuta mediante \texttt{QtConcurrent::run} y se supervisa con \texttt{QFutureWatcher}. Esto permite realizar el recorrido de directorios y la lectura de metadatos sin bloquear el hilo principal de la interfaz. Se trata de un mecanismo de concurrencia de Qt, no de un patrón de diseño adicional.
 
 \section{Problemas encontrados y soluciones}
+\subsection{Problema 1}
+
+\subsubsection{Solución}
 
 \section{Conclusiones}
 
-El desarrollo permitió integrar la lectura de metadatos, la persistencia, la edición y la reproducción en una sola aplicación. Una de las decisiones que más ayudó a mantener el proyecto modificable fue separar las responsabilidades: el minero no depende de la interfaz, los controladores no concentran las sentencias SQL y la reproducción se administra mediante un componente independiente.
+El comienzó del desarrollo fue complicado pero afortunadamente pude completar la parte del minero y la base de datos sin muchas complicaciones, ya que gran parte de esto era cuestión de leer las documentaciones de lo que iba a utilizar.
 
-El patrón DAO fue especialmente útil porque las operaciones sobre canciones, álbumes e intérpretes quedaron reunidas en clases identificables. La organización inspirada en MVC ayudó a separar los datos que presenta la biblioteca de las acciones que realiza el usuario, mientras que RAII, las sentencias preparadas y las transacciones contribuyeron a manejar los recursos y mantener la consistencia de SQLite.
+Los consejos que daba Canek durante las clases fueron claves para cambiar el rumbo de mi proyecto para bien, muchas cosas se facilitaron gracias a su ayuda.
 
-Como resultado se obtuvo una biblioteca musical que puede importar desde la interfaz o desde la terminal, consultar y editar los datos, administrar personas y grupos, mostrar portadas y reproducir canciones. La condición de no modificar los archivos MP3 se mantuvo como una regla central: los metadatos editados se guardan en la base de datos y las imágenes personalizadas se almacenan como recursos externos separados.
+La peor parte sin duda fue todo lo relacionado a la interfaz gráfica, había que leer demasiadas cosas y un mínimo cambio mal hecho podía ocasionar muchos problemas en ella. La mayoría de los problemas que tuve que enfrentar en este proyecto fueron por culpa de la interfaz gŕafica y de no ser por el paro, probablemente no hubiera terminado a tiempo.
 
 \section*{Referencias}
 \addcontentsline{toc}{section}{Referencias}
+\small
 
 \subsection*{Estándar ID3 y TagLib}
 
