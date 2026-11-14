@@ -1,4 +1,4 @@
-executable('minero', 'main.cpp', 'LectorMetadatos.cpp', 'ExplorarDirectorios.cpp', 'ControladorMinero.cpp',
+executable('minero', 'main.cpp', 'LectorMetadatos.cpp', 'ExplorarDirectorios.cpp', 'ControladorMinero.cpp', 'ImportarMusica.cpp',
 '../baseDatos/CrearBD.cpp', 'MineroABD.cpp', '../baseDatos/ConexionSQLite.cpp', 
 '../baseDatos/InicializarBD.cpp', '../baseDatos/Rutas.cpp', '../baseDatos/Biblioteca.cpp', 
 '../baseDatos/repositorio/ConsultaRolas.cpp', '../baseDatos/repositorio/RepositorioMusical.cpp',

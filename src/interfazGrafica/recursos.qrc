@@ -1,0 +1,10 @@
+<RCC>
+    <qresource prefix="/iconos">
+        <file alias="importar.png">recursos/iconos/importar.png</file>
+        <file alias="musica.png">recursos/iconos/musica.png</file>
+        <file alias="artistas.png">recursos/iconos/artistas.png</file>
+        <file alias="albumes.png">recursos/iconos/albumes.png</file>
+        <file alias="lista.png">recursos/iconos/lista.png</file>
+        <file alias="galeria.png">recursos/iconos/galeria.png</file>
+    </qresource>
+</RCC>

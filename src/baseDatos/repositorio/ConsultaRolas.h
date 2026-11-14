@@ -15,6 +15,8 @@ struct CancionBiblioteca {
     int pista = 0;
     int year = 0;
     std::string genero;
+    int idInterprete = 0;
+    int idTipoInterprete = 2;
 };
 
 class Rolas {

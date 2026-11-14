@@ -19,7 +19,7 @@ bool Rolas::obtenerCanciones(std::vector<CancionBiblioteca>& canciones, std::str
     // Consultar canciones, intérpretes y álbumes asociados
     const char* consulta =
     "SELECT r.id_rola, r.title, p.name, a.name, "
-    "r.path, r.track, r.year, r.genre "
+    "r.path, r.track, r.year, r.genre, r.id_performer, COALESCE(p.id_type, 2) "
     "FROM rolas AS r "
     "LEFT JOIN performers AS p "
     "ON r.id_performer = p.id_performer "
@@ -63,6 +63,8 @@ bool Rolas::obtenerCanciones(std::vector<CancionBiblioteca>& canciones, std::str
         cancion.pista = sqlite3_column_int(sentencia.get(), 5);
         cancion.year = sqlite3_column_int(sentencia.get(), 6);
         cancion.genero = obtenerTexto(7);
+        cancion.idInterprete = sqlite3_column_int(sentencia.get(), 8);
+        cancion.idTipoInterprete = sqlite3_column_int(sentencia.get(), 9);
         canciones.push_back(cancion);
     }
 
